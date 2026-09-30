@@ -1,6 +1,5 @@
 # Builds the app and publishes it to GitHub Pages at https://jsamcolipapa.github.io/weather-app-angular/
-# One-time setup: Settings → Pages → Source: GitHub Actions, and add the endpoint variables below
-# under Settings → Secrets and variables → Actions → Variables (same values as your .env).
+# One-time setup: Settings → Pages → Source: GitHub Actions.
 name: Deploy to GitHub Pages
 
 on:
@@ -23,12 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Read by scripts/set-env.mjs (runs as `prebuild`) in place of .env, which isn't committed.
-      FORECAST_URL: ${{ vars.FORECAST_URL }}
-      AIR_QUALITY_URL: ${{ vars.AIR_QUALITY_URL }}
-      SEARCH_URL: ${{ vars.SEARCH_URL }}
-      REVERSE_GEOCODE_URL: ${{ vars.REVERSE_GEOCODE_URL }}
-      RAINVIEWER_URL: ${{ vars.RAINVIEWER_URL }}
-      MAP_TILE_URL: ${{ vars.MAP_TILE_URL }}
+      # These are public API URLs (they ship in the bundle anyway), so defaults live here; set a
+      # repository variable of the same name to override one.
+      FORECAST_URL: ${{ vars.FORECAST_URL || 'https://api.open-meteo.com/v1/forecast' }}
+      AIR_QUALITY_URL: ${{ vars.AIR_QUALITY_URL || 'https://air-quality-api.open-meteo.com/v1/air-quality' }}
+      SEARCH_URL: ${{ vars.SEARCH_URL || 'https://photon.komoot.io/api/' }}
+      REVERSE_GEOCODE_URL: ${{ vars.REVERSE_GEOCODE_URL || 'https://api.bigdatacloud.net/data/reverse-geocode-client' }}
+      RAINVIEWER_URL: ${{ vars.RAINVIEWER_URL || 'https://api.rainviewer.com/public/weather-maps.json' }}
+      MAP_TILE_URL: ${{ vars.MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' }}
     steps:
       - uses: actions/checkout@v4
 

@@ -11,7 +11,7 @@ import {
   TemperatureUnit,
   WindUnit,
   YesterdayResponse,
-} from './weather.models';
+} from '../models/weather.models';
 
 // Endpoints come from `.env` via the generated environment file (see scripts/set-env.mjs).
 export const FORECAST_URL = environment.forecastUrl;

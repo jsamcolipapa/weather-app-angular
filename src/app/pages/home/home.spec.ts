@@ -7,15 +7,15 @@ import {
   ForecastResponse,
   ReverseGeocodeResponse,
   YesterdayResponse,
-} from '../../weather/weather.models';
+} from '../../models/weather.models';
 import {
   AIR_QUALITY_URL,
   FORECAST_URL,
   RAINVIEWER_URL,
   REVERSE_GEOCODE_URL,
   WeatherService,
-} from '../../weather/weather.service';
-import { PREFERENCES_KEY } from '../../weather/preferences.service';
+} from '../../services/weather.service';
+import { PREFERENCES_KEY } from '../../services/preferences.service';
 import { Home } from './home';
 
 const days = [

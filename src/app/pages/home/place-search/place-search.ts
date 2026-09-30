@@ -9,8 +9,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { Place, SearchResult, toSearchResult } from '../../../weather/weather.models';
-import { WeatherService } from '../../../weather/weather.service';
+import { Place, SearchResult, toSearchResult } from '../../../models/weather.models';
+import { WeatherService } from '../../../services/weather.service';
 
 /** How many suggestions to show after de-duplicating. */
 const MAX_RESULTS = 6;

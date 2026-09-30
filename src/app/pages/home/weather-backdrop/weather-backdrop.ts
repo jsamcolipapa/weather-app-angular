@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { DayPhase, WeatherTone } from '../../../weather/weather.models';
+import { DayPhase, WeatherTone } from '../../../models/weather.models';
 
 type Effect = 'rain' | 'storm' | 'snow' | 'clouds' | 'stars';
 

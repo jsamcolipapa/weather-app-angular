@@ -32,10 +32,10 @@ import {
   WIND_UNIT_LABELS,
   WIND_UNITS,
   WindUnit,
-} from '../../weather/weather.models';
-import { ForecastView, PreferencesService } from '../../weather/preferences.service';
-import { showNotification } from '../../weather/notify';
-import { WeatherService } from '../../weather/weather.service';
+} from '../../models/weather.models';
+import { ForecastView, PreferencesService } from '../../services/preferences.service';
+import { showNotification } from '../../services/notify';
+import { WeatherService } from '../../services/weather.service';
 import { DayDetails } from './day-details/day-details';
 import { HourlyChart } from './hourly-chart/hourly-chart';
 import { PlaceSearch } from './place-search/place-search';

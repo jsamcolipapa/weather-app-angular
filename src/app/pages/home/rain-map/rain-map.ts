@@ -13,8 +13,8 @@ import {
   viewChild,
 } from '@angular/core';
 import type { CircleMarker, Map as LeafletMap, TileLayer } from 'leaflet';
-import { Place, RainViewerMaps } from '../../../weather/weather.models';
-import { MAP_TILE_URL, RAINVIEWER_URL } from '../../../weather/weather.service';
+import { Place, RainViewerMaps } from '../../../models/weather.models';
+import { MAP_TILE_URL, RAINVIEWER_URL } from '../../../services/weather.service';
 
 const ZOOM = 7;
 /** RainViewer only serves radar tiles up to this zoom; Leaflet scales them beyond it. */

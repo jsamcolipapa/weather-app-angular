@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Place } from './weather.models';
+import { Place } from '../models/weather.models';
 import { SEARCH_URL, WeatherService } from './weather.service';
 
 describe('WeatherService.search', () => {

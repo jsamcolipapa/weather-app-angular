@@ -1,7 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { describeUvIndex, WeatherCondition } from '../../../weather/weather.models';
+import { describeUvIndex, WeatherCondition } from '../../../models/weather.models';
 
 export interface DayDetailsData {
   label: Date;

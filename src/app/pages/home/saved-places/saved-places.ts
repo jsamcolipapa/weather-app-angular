@@ -1,14 +1,9 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { PreferencesService } from '../../../weather/preferences.service';
-import {
-  describeWeather,
-  Place,
-  samePlace,
-  TemperatureUnit,
-} from '../../../weather/weather.models';
-import { WeatherService } from '../../../weather/weather.service';
+import { describeWeather, Place, samePlace, TemperatureUnit } from '../../../models/weather.models';
+import { PreferencesService } from '../../../services/preferences.service';
+import { WeatherService } from '../../../services/weather.service';
 
 /** Starred places as chips with their current temperature; click one to switch to it. */
 @Component({

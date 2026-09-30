@@ -1,5 +1,5 @@
 import { effect, Injectable, signal } from '@angular/core';
-import { Place, TemperatureUnit, WindUnit } from './weather.models';
+import { Place, TemperatureUnit, WindUnit } from '../models/weather.models';
 
 export type ForecastView = 'today' | 'week';
 

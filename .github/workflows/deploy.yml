@@ -1,0 +1,60 @@
+# Builds the app and publishes it to GitHub Pages at https://jsamcolipapa.github.io/weather-app-angular/
+# One-time setup: Settings → Pages → Source: GitHub Actions, and add the endpoint variables below
+# under Settings → Secrets and variables → Actions → Variables (same values as your .env).
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; let an in-progress one finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Read by scripts/set-env.mjs (runs as `prebuild`) in place of .env, which isn't committed.
+      FORECAST_URL: ${{ vars.FORECAST_URL }}
+      AIR_QUALITY_URL: ${{ vars.AIR_QUALITY_URL }}
+      SEARCH_URL: ${{ vars.SEARCH_URL }}
+      REVERSE_GEOCODE_URL: ${{ vars.REVERSE_GEOCODE_URL }}
+      RAINVIEWER_URL: ${{ vars.RAINVIEWER_URL }}
+      MAP_TILE_URL: ${{ vars.MAP_TILE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Pages serves the site under /<repo>/, so links and assets must resolve from there.
+      - run: npm run build -- --base-href /weather-app-angular/
+
+      # Pages shows 404.html for unknown paths; serving the app there keeps reloads working.
+      - run: cp dist/weather-app-angular/browser/index.html dist/weather-app-angular/browser/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/weather-app-angular/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

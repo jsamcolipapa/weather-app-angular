@@ -1,17 +1,21 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpRequest, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import {
   AirQualityResponse,
+  CurrentOnlyResponse,
   ForecastResponse,
   ReverseGeocodeResponse,
+  YesterdayResponse,
 } from '../../weather/weather.models';
 import {
   AIR_QUALITY_URL,
   FORECAST_URL,
+  RAINVIEWER_URL,
   REVERSE_GEOCODE_URL,
   WeatherService,
 } from '../../weather/weather.service';
+import { PREFERENCES_KEY } from '../../weather/preferences.service';
 import { Home } from './home';
 
 const days = [
@@ -23,11 +27,17 @@ const days = [
   '2026-10-05',
   '2026-10-06',
 ];
-const hours = Array.from({ length: 24 }, (_, i) => `2026-09-30T${String(i).padStart(2, '0')}:00`);
+// Every hour of the 7 days, as Open-Meteo returns without `forecast_hours`.
+const hours = days.flatMap((d) =>
+  Array.from({ length: 24 }, (_, h) => `${d}T${String(h).padStart(2, '0')}:00`),
+);
+const quarters = ['15:30', '15:45', '16:00', '16:15', '16:30', '16:45', '17:00', '17:15'].map(
+  (t) => `2026-09-30T${t}`,
+);
 
 const response: ForecastResponse = {
   utc_offset_seconds: 0,
-  current_units: { temperature_2m: '°C' },
+  current_units: { temperature_2m: '°C', wind_speed_10m: 'km/h' },
   current: {
     time: '2026-09-30T15:30',
     temperature_2m: 21.6,
@@ -39,12 +49,18 @@ const response: ForecastResponse = {
     wind_direction_10m: 247,
     visibility: 5200,
     uv_index: 5.2,
+    precipitation: 0,
+  },
+  minutely_15: {
+    time: quarters,
+    precipitation: quarters.map(() => 0),
   },
   hourly: {
     time: hours,
     temperature_2m: hours.map(() => 18),
     weather_code: hours.map(() => 0),
     is_day: hours.map(() => 1),
+    precipitation_probability: hours.map(() => 20),
   },
   daily: {
     time: days,
@@ -52,12 +68,27 @@ const response: ForecastResponse = {
     temperature_2m_max: days.map(() => 15),
     temperature_2m_min: days.map(() => 3),
     precipitation_probability_max: days.map(() => 30),
+    precipitation_sum: days.map(() => 4.2),
+    wind_speed_10m_max: days.map(() => 18),
+    uv_index_max: days.map(() => 6),
     sunrise: days.map((d) => `${d}T06:35`),
     sunset: days.map((d) => `${d}T17:42`),
   },
 };
 
-const airResponse: AirQualityResponse = { current: { us_aqi: 105 } };
+const airResponse: AirQualityResponse = {
+  current: { us_aqi: 105, pm2_5: 38.4, pm10: 51, ozone: 60, nitrogen_dioxide: 12 },
+};
+
+const yesterdayResponse: YesterdayResponse = {
+  daily: { time: ['2026-09-29', '2026-09-30'], temperature_2m_max: [12.2, 15] },
+};
+
+/** The main forecast (not the "yesterday" or saved-places lookups on the same endpoint). */
+const isForecast = (r: HttpRequest<unknown>) =>
+  r.url === FORECAST_URL && r.params.has('minutely_15');
+const isYesterday = (r: HttpRequest<unknown>) =>
+  r.url === FORECAST_URL && r.params.has('past_days');
 
 const geocodeResponse: ReverseGeocodeResponse = {
   locality: 'Quezon City',
@@ -71,6 +102,7 @@ describe('Home', () => {
   let locate: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       imports: [Home],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -90,8 +122,10 @@ describe('Home', () => {
     fixture.detectChanges();
     await new Promise((resolve) => setTimeout(resolve));
     TestBed.tick();
-    const req = httpTesting.expectOne((r) => r.url === FORECAST_URL);
+    const req = httpTesting.expectOne(isForecast);
     const airReq = httpTesting.expectOne((r) => r.url === AIR_QUALITY_URL);
+    // Answered straight away so whenStable() below doesn't wait on it.
+    httpTesting.expectOne(isYesterday).flush(yesterdayResponse);
     return { fixture, req, airReq, el: fixture.nativeElement as HTMLElement };
   }
 
@@ -152,7 +186,7 @@ describe('Home', () => {
         .find((c) => c.querySelector('.card__title')?.textContent === title)
         ?.textContent?.replace(/\s+/g, ' ');
     expect(card('UV Index')).toContain('Moderate');
-    expect(card('Wind Status')).toContain('7.7km/h');
+    expect(card('Wind Status')).toContain('7.7 km/h');
     expect(card('Wind Status')).toContain('WSW');
     expect(card('Sunrise & Sunset')).toContain('6:35 AM');
     expect(card('Sunrise & Sunset')).toContain('5:42 PM');
@@ -172,9 +206,12 @@ describe('Home', () => {
       .click();
     await fixture.whenStable();
 
+    // Starts from the current hour (15:30 → 15:00), in 3-hour steps.
     const items = el.querySelectorAll('.forecast__item');
     expect(items.length).toBe(8);
-    expect(items[1].textContent).toContain('03:00');
+    expect(items[0].textContent).toContain('15:00');
+    expect(items[1].textContent).toContain('18:00');
+    expect(el.querySelectorAll('app-hourly-chart .chart__dot').length).toBe(8);
   });
 
   it('refetches in Fahrenheit when °F is picked', async () => {
@@ -188,9 +225,187 @@ describe('Home', () => {
       .click();
     TestBed.tick();
 
-    const refetch = httpTesting.expectOne((r) => r.url === FORECAST_URL);
+    const refetch = httpTesting.expectOne(isForecast);
     expect(refetch.request.params.get('temperature_unit')).toBe('fahrenheit');
     refetch.flush(response);
+  });
+
+  it('warns about rain starting within the hour', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush({
+      ...response,
+      minutely_15: { time: quarters, precipitation: [0, 0, 0, 0.8, 1, 1, 1, 1] },
+    });
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    expect(text(el, '.rain-banner')).toContain('Rain starting in about 30 min');
+  });
+
+  it('shows no rain banner when the next hour is dry', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    expect(el.querySelector('.rain-banner')).toBeNull();
+  });
+
+  it('animates the backdrop for the current weather', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush({ ...response, current: { ...response.current, weather_code: 63 } });
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    expect(el.querySelector('app-weather-backdrop .backdrop--rain')).not.toBeNull();
+    expect(el.querySelectorAll('app-weather-backdrop .particle').length).toBeGreaterThan(0);
+  });
+
+  it('cycles the wind unit and refetches', async () => {
+    const { fixture, req, airReq, el } = await render();
+    expect(req.request.params.get('wind_speed_unit')).toBe('kmh');
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('.card__unit--toggle')!.click();
+    TestBed.tick();
+
+    const refetch = httpTesting.expectOne(isForecast);
+    expect(refetch.request.params.get('wind_speed_unit')).toBe('mph');
+    refetch.flush(response);
+    await fixture.whenStable();
+    expect(text(el, '.card__unit--toggle')).toBe('mph');
+  });
+
+  it('remembers the unit and searched place for next time', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.units__unit'))
+      .find((b) => b.textContent!.includes('°F'))!
+      .click();
+    TestBed.tick();
+    httpTesting.expectOne(isForecast).flush(response);
+    await fixture.whenStable();
+
+    const saved = JSON.parse(localStorage.getItem(PREFERENCES_KEY)!);
+    expect(saved.unit).toBe('fahrenheit');
+    expect(saved.place).toEqual({ name: 'Testville', latitude: 1, longitude: 2 });
+  });
+
+  it('copies a summary when the browser has no share sheet', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, share: undefined, clipboard: { writeText } });
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('.place__action--share')!.click();
+    await fixture.whenStable();
+
+    expect(writeText).toHaveBeenCalledWith('22°C, partly cloudy in Testville');
+    expect(el.querySelector('.place__action--share')?.getAttribute('aria-label')).toBe(
+      'Copied to clipboard',
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it('opens and closes the details for a day', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    const dayButtons = el.querySelectorAll<HTMLButtonElement>('.forecast__item--button');
+    dayButtons[1].click();
+    await fixture.whenStable();
+
+    expect(dayButtons[1].getAttribute('aria-expanded')).toBe('true');
+    expect(text(el, '.details__title')).toBe('Thursday, Oct 1');
+    expect(el.querySelectorAll('.details__hour').length).toBe(8);
+    expect(text(el, '.details__stats')).toContain('4.2 mm · 30%');
+    expect(text(el, '.details__stats')).toContain('18 km/h');
+
+    el.querySelector<HTMLButtonElement>('.details__close')!.click();
+    await fixture.whenStable();
+    expect(el.querySelector('app-day-details')).toBeNull();
+  });
+
+  it('compares today with yesterday', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    expect(text(el, '.current__compare')).toBe('3° warmer than yesterday');
+  });
+
+  it('breaks down the air quality by pollutant', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    const pollutants = text(el, '.pollutants');
+    expect(pollutants).toContain('PM2.538');
+    expect(pollutants).toContain('NO₂12');
+  });
+
+  it('saves the current place and lists it', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('.place__action--save')!.click();
+    TestBed.tick();
+    const saved: CurrentOnlyResponse = {
+      current_units: { temperature_2m: '°C' },
+      current: { temperature_2m: 19, weather_code: 0, is_day: 1 },
+    };
+    httpTesting
+      .expectOne(
+        (r) =>
+          r.url === FORECAST_URL &&
+          r.params.get('current') === 'temperature_2m,weather_code,is_day',
+      )
+      .flush([saved]);
+    await fixture.whenStable();
+
+    expect(text(el, '.chip__name')).toBe('Testville');
+    expect(text(el, '.chip__temp')).toBe('19°');
+    expect(el.querySelector('.place__action--save')?.getAttribute('aria-pressed')).toBe('true');
+    expect(JSON.parse(localStorage.getItem(PREFERENCES_KEY)!).favourites).toEqual([
+      { name: 'Testville', latitude: 1, longitude: 2 },
+    ]);
+  });
+
+  it('suggests what to wear', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    // Feels like 20.2°C, 30% rain, UV max 6, 7.7 km/h wind.
+    const tips = Array.from(el.querySelectorAll('.wear__tip'), (tip) =>
+      tip.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+    expect(tips).toEqual(['checkroom T-shirt', 'sunny Sunscreen & hat']);
+  });
+
+  it('only loads the rain radar when asked', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    expect(text(el, '.map-placeholder')).toContain('Show rain radar');
+    expect(el.querySelector('app-rain-map')).toBeNull();
+    httpTesting.expectNone((r) => r.url === RAINVIEWER_URL);
   });
 
   it('shows a retry button when the request fails', async () => {

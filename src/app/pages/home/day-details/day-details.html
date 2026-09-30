@@ -1,0 +1,57 @@
+@let d = day();
+<section class="details" aria-labelledby="day-details-title">
+  <header class="details__header">
+    <mat-icon class="details__icon filled" [class]="'tone-' + d.condition.tone" aria-hidden="true">
+      {{ d.condition.icon }}
+    </mat-icon>
+    <div>
+      <h3 id="day-details-title" class="details__title">{{ d.label | date: 'EEEE, MMM d' }}</h3>
+      <p class="details__summary">
+        {{ d.condition.label }} · {{ d.high | number: '1.0-0' }}° / {{ d.low | number: '1.0-0' }}°
+      </p>
+    </div>
+    <button
+      class="details__close"
+      type="button"
+      aria-label="Close day details"
+      (click)="closed.emit()"
+    >
+      <mat-icon aria-hidden="true">close</mat-icon>
+    </button>
+  </header>
+
+  <ol class="details__hours">
+    @for (hour of d.hours; track hour.key) {
+      <li class="details__hour">
+        <span>{{ hour.label | date: 'HH:mm' }}</span>
+        <mat-icon
+          class="filled"
+          [class]="'tone-' + hour.condition.tone"
+          [attr.aria-label]="hour.condition.label"
+        >
+          {{ hour.condition.icon }}
+        </mat-icon>
+        <span>{{ hour.temperature | number: '1.0-0' }}°</span>
+      </li>
+    }
+  </ol>
+
+  <dl class="details__stats">
+    <div>
+      <dt>Rain</dt>
+      <dd>{{ d.rainTotal | number: '1.0-1' }} mm · {{ d.rainChance ?? 0 }}%</dd>
+    </div>
+    <div>
+      <dt>Max wind</dt>
+      <dd>{{ d.windMax | number: '1.0-0' }} {{ windUnit() }}</dd>
+    </div>
+    <div>
+      <dt>UV max</dt>
+      <dd>{{ d.uvMax | number: '1.0-0' }} · {{ describeUv(d.uvMax) }}</dd>
+    </div>
+    <div>
+      <dt>Sun</dt>
+      <dd>{{ d.sunrise | date: 'h:mm a' }} – {{ d.sunset | date: 'h:mm a' }}</dd>
+    </div>
+  </dl>
+</section>

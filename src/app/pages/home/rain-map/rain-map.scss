@@ -1,0 +1,23 @@
+:host {
+  display: block;
+}
+
+.map {
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  // Keep Leaflet's panes (z-index up to 1000) below the page's own overlays.
+  isolation: isolate;
+}
+
+.caption {
+  margin: 8px 0 0;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@media (max-width: 600px) {
+  .map {
+    height: 240px;
+  }
+}

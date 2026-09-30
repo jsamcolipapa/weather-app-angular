@@ -1,0 +1,36 @@
+@if (items().length) {
+  <ul class="saved" aria-label="Saved places">
+    @for (item of items(); track item.key) {
+      <li class="chip" [class.chip--active]="item.active">
+        <button
+          class="chip__select"
+          type="button"
+          [attr.aria-current]="item.active ? 'true' : null"
+          (click)="placeSelected.emit(item.place)"
+        >
+          @if (item.condition; as condition) {
+            <mat-icon
+              class="chip__icon filled"
+              [class]="'tone-' + condition.tone"
+              aria-hidden="true"
+            >
+              {{ condition.icon }}
+            </mat-icon>
+          }
+          <span class="chip__name">{{ item.place.name }}</span>
+          @if (item.temperature !== undefined) {
+            <span class="chip__temp">{{ item.temperature | number: '1.0-0' }}°</span>
+          }
+        </button>
+        <button
+          class="chip__remove"
+          type="button"
+          [attr.aria-label]="'Remove ' + item.place.name"
+          (click)="remove(item.place)"
+        >
+          <mat-icon aria-hidden="true">close</mat-icon>
+        </button>
+      </li>
+    }
+  </ul>
+}

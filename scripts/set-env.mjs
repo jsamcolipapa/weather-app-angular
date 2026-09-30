@@ -7,6 +7,8 @@ const REQUIRED = {
   airQualityUrl: 'AIR_QUALITY_URL',
   searchUrl: 'SEARCH_URL',
   reverseGeocodeUrl: 'REVERSE_GEOCODE_URL',
+  rainViewerUrl: 'RAINVIEWER_URL',
+  mapTileUrl: 'MAP_TILE_URL',
 };
 
 /** Parses `KEY=value` lines, skipping blanks and `#` comments. */

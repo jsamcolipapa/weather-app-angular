@@ -1,0 +1,116 @@
+:host {
+  display: block;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: var(--card-bg);
+}
+
+.details__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.details__icon {
+  width: 44px;
+  height: 44px;
+  font-size: 44px;
+}
+
+.details__title {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+}
+
+.details__summary {
+  margin: 2px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+.details__close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--mat-sys-on-surface-variant);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--mat-sys-surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+  }
+}
+
+.details__hours {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(56px, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+}
+
+.details__hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font: var(--mat-sys-body-small);
+
+  mat-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 28px;
+  }
+}
+
+.details__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 0;
+
+  dt {
+    font: var(--mat-sys-body-small);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 2px 0 0;
+    font: var(--mat-sys-title-small);
+  }
+}
+
+@media (max-width: 600px) {
+  .details__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.filled {
+  font-variation-settings: 'FILL' 1;
+}
+
+// Tints come from the `--tone-*` variables set on the home page.
+@each $tone in 'sun', 'night', 'cloud', 'fog', 'rain', 'snow', 'storm' {
+  .tone-#{$tone} {
+    color: var(--tone-#{$tone});
+  }
+}

@@ -1,0 +1,74 @@
+:host {
+  display: block;
+  padding: 16px 20px 12px;
+  border-radius: 16px;
+  background: var(--card-bg);
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.chart__area {
+  fill: color-mix(in srgb, var(--tone-sun) 18%, transparent);
+}
+
+.chart__line {
+  fill: none;
+  stroke: var(--tone-sun);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart__dot {
+  fill: var(--card-bg);
+  stroke: var(--tone-sun);
+  stroke-width: 2;
+}
+
+.chart__bar {
+  fill: color-mix(in srgb, var(--tone-rain) 55%, transparent);
+}
+
+.chart__temp,
+.chart__time {
+  text-anchor: middle;
+  font-size: 11px;
+}
+
+.chart__temp {
+  fill: var(--mat-sys-on-surface);
+  font-weight: 600;
+}
+
+.chart__time {
+  fill: var(--mat-sys-on-surface-variant);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.legend__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+
+  &--temp {
+    background: var(--tone-sun);
+  }
+
+  &--rain {
+    margin-left: 10px;
+    background: color-mix(in srgb, var(--tone-rain) 55%, transparent);
+  }
+}

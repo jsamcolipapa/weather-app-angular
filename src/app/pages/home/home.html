@@ -1,4 +1,5 @@
 <main class="page" [class]="phase() ? 'page--' + phase() : ''">
+  <app-weather-backdrop [tone]="tone()" [phase]="phase()" />
   <div class="dashboard">
     <aside class="sidebar">
       <app-place-search
@@ -6,6 +7,7 @@
         (placeSelected)="place.set($event)"
         (locateRequested)="useMyLocation()"
       />
+      <app-saved-places [active]="place()" [unit]="unit()" (placeSelected)="place.set($event)" />
 
       <div class="current" aria-live="polite" [attr.aria-busy]="forecast.isLoading()">
         @if (forecast.error()) {
@@ -29,6 +31,9 @@
             {{ now.time | date: 'EEEE' }},
             <span class="current__clock">{{ now.time | date: 'HH:mm' }}</span>
           </p>
+          @if (comparedToYesterday(); as comparison) {
+            <p class="current__compare">{{ comparison }}</p>
+          }
 
           <hr class="current__divider" />
 
@@ -49,11 +54,42 @@
             </li>
           </ul>
 
+          @if (wearTips(); as tips) {
+            <div class="wear">
+              <h3 class="wear__title">What to wear</h3>
+              <ul class="wear__tips">
+                @for (tip of tips; track tip.label) {
+                  <li class="wear__tip">
+                    <mat-icon aria-hidden="true">{{ tip.icon }}</mat-icon>
+                    {{ tip.label }}
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+
           <div class="place">
             <mat-icon aria-hidden="true">{{
               isDeviceLocation() ? 'my_location' : 'location_on'
             }}</mat-icon>
             <p class="place__name">{{ placeName() }}</p>
+            <button
+              class="place__action place__action--save"
+              type="button"
+              (click)="toggleFavourite()"
+              [attr.aria-pressed]="isFavourite()"
+              aria-label="Save this place"
+            >
+              <mat-icon [class.filled]="isFavourite()" aria-hidden="true">star</mat-icon>
+            </button>
+            <button
+              class="place__action place__action--share"
+              type="button"
+              (click)="share()"
+              [attr.aria-label]="copied() ? 'Copied to clipboard' : 'Share this weather'"
+            >
+              <mat-icon aria-hidden="true">{{ copied() ? 'check' : 'share' }}</mat-icon>
+            </button>
           </div>
         } @else {
           <div class="current__skeleton" aria-hidden="true">
@@ -93,25 +129,48 @@
             Week
           </button>
         </nav>
-        <div class="units" role="group" aria-label="Temperature unit">
-          <button
-            class="units__unit"
-            [class.units__unit--active]="unit() === 'celsius'"
-            [attr.aria-pressed]="unit() === 'celsius'"
-            (click)="unit.set('celsius')"
-          >
-            °C
-          </button>
-          <button
-            class="units__unit"
-            [class.units__unit--active]="unit() === 'fahrenheit'"
-            [attr.aria-pressed]="unit() === 'fahrenheit'"
-            (click)="unit.set('fahrenheit')"
-          >
-            °F
-          </button>
+        <div class="main__actions">
+          @if (notificationsSupported) {
+            <button
+              class="units__unit alerts-toggle"
+              [class.units__unit--active]="notifyRain()"
+              type="button"
+              [attr.aria-pressed]="notifyRain()"
+              aria-label="Notify me when rain is about to start"
+              (click)="toggleRainAlerts()"
+            >
+              <mat-icon aria-hidden="true">{{
+                notifyRain() ? 'notifications_active' : 'notifications'
+              }}</mat-icon>
+            </button>
+          }
+          <div class="units" role="group" aria-label="Temperature unit">
+            <button
+              class="units__unit"
+              [class.units__unit--active]="unit() === 'celsius'"
+              [attr.aria-pressed]="unit() === 'celsius'"
+              (click)="unit.set('celsius')"
+            >
+              °C
+            </button>
+            <button
+              class="units__unit"
+              [class.units__unit--active]="unit() === 'fahrenheit'"
+              [attr.aria-pressed]="unit() === 'fahrenheit'"
+              (click)="unit.set('fahrenheit')"
+            >
+              °F
+            </button>
+          </div>
         </div>
       </header>
+
+      @if (rainSoon(); as message) {
+        <p class="rain-banner" role="status">
+          <mat-icon class="tone-rain filled" aria-hidden="true">umbrella</mat-icon>
+          {{ message }}
+        </p>
+      }
 
       @if (!forecast.error()) {
         @let h = highlights();
@@ -125,20 +184,28 @@
               </li>
             }
           } @else if (view() === 'week') {
-            @for (day of week(); track day.key) {
-              <li class="forecast__item">
-                <span class="forecast__label">{{ day.label | date: 'EEE' }}</span>
-                <mat-icon
-                  class="forecast__icon filled"
-                  [class]="'tone-' + day.condition.tone"
-                  [attr.aria-label]="day.condition.label"
+            @for (day of week(); track day.key; let i = $index) {
+              <li>
+                <button
+                  class="forecast__item forecast__item--button"
+                  [class.forecast__item--selected]="selectedDay() === i"
+                  type="button"
+                  [attr.aria-expanded]="selectedDay() === i"
+                  (click)="toggleDay(i)"
                 >
-                  {{ day.condition.icon }}
-                </mat-icon>
-                <span class="forecast__temps">
-                  {{ day.high | number: '1.0-0' }}°
-                  <span class="forecast__low">{{ day.low | number: '1.0-0' }}°</span>
-                </span>
+                  <span class="forecast__label">{{ day.label | date: 'EEE' }}</span>
+                  <mat-icon
+                    class="forecast__icon filled"
+                    [class]="'tone-' + day.condition.tone"
+                    [attr.aria-label]="day.condition.label"
+                  >
+                    {{ day.condition.icon }}
+                  </mat-icon>
+                  <span class="forecast__temps">
+                    {{ day.high | number: '1.0-0' }}°
+                    <span class="forecast__low">{{ day.low | number: '1.0-0' }}°</span>
+                  </span>
+                </button>
               </li>
             }
           } @else {
@@ -157,6 +224,16 @@
             }
           }
         </ol>
+
+        @if (h && view() === 'today') {
+          <app-hourly-chart [points]="next24Hours()" />
+        } @else if (view() === 'week' && dayDetails(); as details) {
+          <app-day-details
+            [day]="details"
+            [windUnit]="windUnitLabel()"
+            (closed)="selectedDay.set(undefined)"
+          />
+        }
 
         <h2 class="main__title">Today's Highlights</h2>
 
@@ -196,7 +273,15 @@
             <h3 class="card__title">Wind Status</h3>
             @if (h) {
               <p class="card__value">
-                {{ h.wind.speed | number: '1.0-2' }}<span class="card__unit">km/h</span>
+                {{ h.wind.speed | number: '1.0-2'
+                }}<button
+                  class="card__unit card__unit--toggle"
+                  type="button"
+                  (click)="cycleWindUnit()"
+                  aria-label="Change wind speed unit"
+                >
+                  {{ windUnitLabel() }}
+                </button>
               </p>
               <p class="card__status">
                 <span class="compass">
@@ -294,6 +379,16 @@
             @if (airQuality(); as aq) {
               <p class="card__value">{{ aq.value }}</p>
               <p class="card__status">{{ aq.label }}</p>
+              @if (aq.pollutants.length) {
+                <dl class="pollutants">
+                  @for (p of aq.pollutants; track p.key) {
+                    <div>
+                      <dt>{{ p.label }}</dt>
+                      <dd>{{ p.value | number: '1.0-0' }}</dd>
+                    </div>
+                  }
+                </dl>
+              }
               <span class="meter meter--aqi" [style.--level]="aq.percent" aria-hidden="true"></span>
             } @else if (air.error() || air.hasValue()) {
               <p class="card__value">–</p>
@@ -308,6 +403,19 @@
             }
           </article>
         </div>
+
+        @if (place(); as p) {
+          <h2 class="main__title">Rain Radar</h2>
+          <!-- Leaflet and the radar tiles only load once someone asks for the map. -->
+          @defer (on interaction) {
+            <app-rain-map class="card" [place]="p" />
+          } @placeholder {
+            <button class="card map-placeholder" type="button">
+              <mat-icon aria-hidden="true">radar</mat-icon>
+              Show rain radar
+            </button>
+          }
+        }
       }
     </section>
   </div>

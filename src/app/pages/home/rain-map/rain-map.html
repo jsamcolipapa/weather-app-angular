@@ -1,0 +1,10 @@
+<div #map class="map" role="region" aria-label="Rain radar map"></div>
+<p class="caption">
+  @if (frame(); as f) {
+    Radar as of {{ f.time | date: 'HH:mm' }}
+  } @else if (radarError()) {
+    Radar isn't available right now
+  } @else {
+    Loading radar…
+  }
+</p>

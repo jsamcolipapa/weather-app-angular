@@ -1,0 +1,89 @@
+:host {
+  display: block;
+}
+
+.saved {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 999px;
+  background: var(--card-bg);
+  font: var(--mat-sys-label-large);
+
+  &--active {
+    border-color: var(--mat-sys-primary);
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+}
+
+.chip__select,
+.chip__remove {
+  display: flex;
+  align-items: center;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+}
+
+.chip__select {
+  gap: 6px;
+  max-width: 200px;
+  padding: 6px 4px 6px 12px;
+  border-radius: 999px 0 0 999px;
+}
+
+.chip__remove {
+  padding: 6px 8px 6px 2px;
+  border-radius: 0 999px 999px 0;
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+}
+
+.chip__icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.chip__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip__temp {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.filled {
+  font-variation-settings: 'FILL' 1;
+}
+
+// Tints come from the `--tone-*` variables set on the home page.
+@each $tone in 'sun', 'night', 'cloud', 'fog', 'rain', 'snow', 'storm' {
+  .tone-#{$tone} {
+    color: var(--tone-#{$tone});
+  }
+}

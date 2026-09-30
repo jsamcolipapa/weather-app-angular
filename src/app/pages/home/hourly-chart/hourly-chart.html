@@ -1,0 +1,33 @@
+@if (chart(); as c) {
+  <svg
+    class="chart"
+    [attr.viewBox]="'0 0 ' + width + ' 172'"
+    role="img"
+    [attr.aria-label]="c.summary"
+  >
+    <polygon class="chart__area" [attr.points]="c.area" />
+    <polyline class="chart__line" [attr.points]="c.line" />
+
+    @for (p of c.points; track p.key) {
+      <rect
+        class="chart__bar"
+        [attr.x]="p.x - c.barWidth / 2"
+        [attr.y]="barBottom - p.barHeight"
+        [attr.width]="c.barWidth"
+        [attr.height]="p.barHeight"
+        rx="2"
+      />
+      @if (p.labelled) {
+        <circle class="chart__dot" [attr.cx]="p.x" [attr.cy]="p.y" r="3.5" />
+        <text class="chart__temp" [attr.x]="p.x" [attr.y]="p.y - 10">
+          {{ p.temperature | number: '1.0-0' }}°
+        </text>
+        <text class="chart__time" [attr.x]="p.x" y="166">{{ p.label | date: 'HH:mm' }}</text>
+      }
+    }
+  </svg>
+  <p class="legend" aria-hidden="true">
+    <span class="legend__swatch legend__swatch--temp"></span>Temperature
+    <span class="legend__swatch legend__swatch--rain"></span>Chance of rain
+  </p>
+}

@@ -1,0 +1,13 @@
+@if (effect(); as effect) {
+  <div class="backdrop" [class]="'backdrop--' + effect">
+    @for (p of particles(); track $index) {
+      <span
+        class="particle"
+        [style.--x]="p.x + '%'"
+        [style.--y]="p.y + '%'"
+        [style.--delay]="p.delay + 's'"
+        [style.--speed]="p.speed"
+      ></span>
+    }
+  </div>
+}

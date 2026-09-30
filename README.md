@@ -17,12 +17,6 @@ A weather dashboard built with Angular 22 and Angular Material. Live at
 - **Look:** the sky, panels and an animated backdrop follow the time of day and the weather.
 - **App:** installable, works offline with the last forecast, remembers your settings.
 
-Weather data comes from free, key-less services: [Open-Meteo](https://open-meteo.com/) (forecast,
-air quality), [Photon](https://photon.komoot.io/) (search),
-[BigDataCloud](https://www.bigdatacloud.com/) (place names),
-[RainViewer](https://www.rainviewer.com/) (radar) and
-[OpenStreetMap](https://www.openstreetmap.org/) (map tiles).
-
 ## Getting started
 
 Requires **Node.js 22.22.3 or newer** (Node 24 recommended).
@@ -31,23 +25,6 @@ Requires **Node.js 22.22.3 or newer** (Node 24 recommended).
 npm install
 npm start          # http://localhost:4200
 ```
-
-### Endpoints (`.env`)
-
-API URLs are read from a `.env` file in the project root, which `scripts/set-env.mjs` turns into
-`src/environments/environment.ts` before every start, build and test. Real environment variables
-override the file. `.env` is not committed; create it with:
-
-```env
-FORECAST_URL=https://api.open-meteo.com/v1/forecast
-AIR_QUALITY_URL=https://air-quality-api.open-meteo.com/v1/air-quality
-SEARCH_URL=https://photon.komoot.io/api/
-REVERSE_GEOCODE_URL=https://api.bigdatacloud.net/data/reverse-geocode-client
-RAINVIEWER_URL=https://api.rainviewer.com/public/weather-maps.json
-MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
-```
-
-These URLs end up in the browser bundle, so don't put secrets in `.env`.
 
 ## Scripts
 

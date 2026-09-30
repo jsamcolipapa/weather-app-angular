@@ -1,0 +1,256 @@
+export type TemperatureUnit = 'celsius' | 'fahrenheit';
+
+export interface Place {
+  /** Display name. Undefined for device locations until reverse-geocoded. */
+  name?: string;
+  latitude: number;
+  longitude: number;
+}
+
+/** Subset of the BigDataCloud reverse-geocode response we use. */
+export interface ReverseGeocodeResponse {
+  locality: string;
+  city: string;
+  principalSubdivision: string;
+  countryName: string;
+}
+
+/** e.g. "Quezon City, Manila" or "Manhattan, New York City". Empty if nothing usable. */
+export function formatPlaceName(r: ReverseGeocodeResponse): string {
+  const primary = r.locality || r.city;
+  const secondary = r.city && r.city !== primary ? r.city : r.principalSubdivision || r.countryName;
+  return [primary, secondary].filter(Boolean).join(', ');
+}
+
+/** Subset of the Open-Meteo forecast response we request. */
+export interface ForecastResponse {
+  utc_offset_seconds: number;
+  current_units: {
+    temperature_2m: string;
+  };
+  current: {
+    time: string;
+    temperature_2m: number;
+    apparent_temperature: number;
+    weather_code: number;
+    is_day: 0 | 1;
+    relative_humidity_2m: number;
+    wind_speed_10m: number;
+    wind_direction_10m: number;
+    /** Metres. */
+    visibility: number;
+    uv_index: number;
+  };
+  hourly: {
+    time: string[];
+    temperature_2m: number[];
+    weather_code: number[];
+    is_day: (0 | 1)[];
+  };
+  daily: {
+    time: string[];
+    weather_code: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_probability_max: (number | null)[];
+    sunrise: string[];
+    sunset: string[];
+  };
+}
+
+/** Subset of the Open-Meteo air-quality response we request. */
+export interface AirQualityResponse {
+  current: {
+    us_aqi: number | null;
+  };
+}
+
+/** Subset of a Photon (OpenStreetMap) search result. */
+export interface PhotonFeature {
+  /** [longitude, latitude]. */
+  geometry: { coordinates: [number, number] };
+  properties: {
+    osm_type: string;
+    osm_id: number;
+    name?: string;
+    street?: string;
+    district?: string;
+    city?: string;
+    county?: string;
+    state?: string;
+    country?: string;
+  };
+}
+
+export interface PhotonResponse {
+  features: PhotonFeature[];
+}
+
+export interface SearchResult {
+  id: string;
+  /** e.g. "SM Megamall". */
+  name: string;
+  /** Where it is, e.g. "Mandaluyong, Metro Manila, Philippines". */
+  detail: string;
+  latitude: number;
+  longitude: number;
+}
+
+/** Flattens a Photon feature into a list entry; undefined for unnamed features. */
+export function toSearchResult({
+  geometry,
+  properties: p,
+}: PhotonFeature): SearchResult | undefined {
+  if (!p.name) {
+    return undefined;
+  }
+  const areas = [p.district, p.city, p.county, p.state].filter(
+    (area, i, all): area is string =>
+      !!area && area !== p.name && area !== p.country && all.indexOf(area) === i,
+  );
+  return {
+    id: `${p.osm_type}${p.osm_id}`,
+    name: p.name,
+    detail: [...areas.slice(0, 2), p.country].filter(Boolean).join(', '),
+    latitude: geometry.coordinates[1],
+    longitude: geometry.coordinates[0],
+  };
+}
+
+/** Colour family used to tint weather icons. */
+export type WeatherTone = 'sun' | 'night' | 'cloud' | 'fog' | 'rain' | 'snow' | 'storm';
+
+export interface WeatherCondition {
+  label: string;
+  /** Material Symbols icon name. */
+  icon: string;
+  tone: WeatherTone;
+}
+
+/** Maps a WMO weather code (as returned by Open-Meteo) to a label and icon. */
+export function describeWeather(code: number, isDay: boolean): WeatherCondition {
+  switch (code) {
+    case 0:
+      return {
+        label: 'Clear sky',
+        icon: isDay ? 'sunny' : 'clear_night',
+        tone: isDay ? 'sun' : 'night',
+      };
+    case 1:
+      return {
+        label: 'Mainly clear',
+        icon: isDay ? 'sunny' : 'clear_night',
+        tone: isDay ? 'sun' : 'night',
+      };
+    case 2:
+      return {
+        label: 'Partly cloudy',
+        icon: isDay ? 'partly_cloudy_day' : 'partly_cloudy_night',
+        tone: isDay ? 'sun' : 'night',
+      };
+    case 3:
+      return { label: 'Overcast', icon: 'cloud', tone: 'cloud' };
+    case 45:
+    case 48:
+      return { label: 'Fog', icon: 'foggy', tone: 'fog' };
+    case 51:
+    case 53:
+    case 55:
+      return { label: 'Drizzle', icon: 'rainy_light', tone: 'rain' };
+    case 56:
+    case 57:
+      return { label: 'Freezing drizzle', icon: 'rainy_light', tone: 'rain' };
+    case 61:
+    case 63:
+    case 65:
+      return { label: 'Rain', icon: 'rainy', tone: 'rain' };
+    case 66:
+    case 67:
+      return { label: 'Freezing rain', icon: 'rainy', tone: 'rain' };
+    case 71:
+    case 73:
+    case 75:
+    case 77:
+      return { label: 'Snow', icon: 'weather_snowy', tone: 'snow' };
+    case 80:
+    case 81:
+    case 82:
+      return { label: 'Rain showers', icon: 'rainy', tone: 'rain' };
+    case 85:
+    case 86:
+      return { label: 'Snow showers', icon: 'weather_snowy', tone: 'snow' };
+    case 95:
+      return { label: 'Thunderstorm', icon: 'thunderstorm', tone: 'storm' };
+    case 96:
+    case 99:
+      return { label: 'Thunderstorm with hail', icon: 'thunderstorm', tone: 'storm' };
+    default:
+      return { label: 'Unknown', icon: 'help', tone: 'cloud' };
+  }
+}
+
+/** 16-point compass label for a bearing in degrees, e.g. 247 → "WSW". */
+export function compassDirection(degrees: number): string {
+  const points = [
+    'N',
+    'NNE',
+    'NE',
+    'ENE',
+    'E',
+    'ESE',
+    'SE',
+    'SSE',
+    'S',
+    'SSW',
+    'SW',
+    'WSW',
+    'W',
+    'WNW',
+    'NW',
+    'NNW',
+  ];
+  return points[Math.round((((degrees % 360) + 360) % 360) / 22.5) % 16];
+}
+
+export function describeHumidity(percent: number): string {
+  if (percent < 30) return 'Dry';
+  if (percent <= 60) return 'Normal';
+  return 'Humid';
+}
+
+/** Visibility in kilometres. */
+export function describeVisibility(km: number): string {
+  if (km >= 10) return 'Clear';
+  if (km >= 4) return 'Average';
+  if (km >= 1) return 'Poor';
+  return 'Very poor';
+}
+
+/** US AQI category names. */
+export function describeAirQuality(aqi: number): string {
+  if (aqi <= 50) return 'Good';
+  if (aqi <= 100) return 'Moderate';
+  if (aqi <= 150) return 'Unhealthy for some';
+  if (aqi <= 200) return 'Unhealthy';
+  if (aqi <= 300) return 'Very unhealthy';
+  return 'Hazardous';
+}
+
+export function describeUvIndex(uv: number): string {
+  if (uv < 3) return 'Low';
+  if (uv < 6) return 'Moderate';
+  if (uv < 8) return 'High';
+  if (uv < 11) return 'Very high';
+  return 'Extreme';
+}
+
+/**
+ * Parses Open-Meteo's local ISO strings ("2026-09-30" or "2026-09-30T15:30") as
+ * wall-clock time, so dates render in the place's own timezone rather than shifting.
+ */
+export function parseLocalTime(iso: string): Date {
+  const [date, time = '00:00'] = iso.split('T');
+  const [y, m, d] = date.split('-').map(Number);
+  const [h, min] = time.split(':').map(Number);
+  return new Date(y, m - 1, d, h, min);
+}

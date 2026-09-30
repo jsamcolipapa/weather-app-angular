@@ -1,0 +1,38 @@
+// Angular Material theme (Material 3). `mat.theme()` defines the --mat-sys-* CSS
+// variables used by Material components; use the same variables in custom
+// components so everything stays in sync.
+// Learn more at https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+  // Follow the user's OS light/dark setting.
+  color-scheme: light dark;
+
+  @include mat.theme(
+    (
+      color: (
+        // Sky blue for primary UI, warm orange accent (sun / highlights).
+        primary: mat.$azure-palette,
+        tertiary: mat.$orange-palette,
+      ),
+      typography: (
+        // Display font for big numbers and headings, body font for everything else.
+        brand-family: 'Outfit, sans-serif',
+        plain-family: 'Inter, sans-serif',
+        bold-weight: 600,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+}

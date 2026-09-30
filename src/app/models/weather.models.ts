@@ -523,3 +523,16 @@ export function parseLocalTime(iso: string): Date {
   const [h, min] = time.split(':').map(Number);
   return new Date(y, m - 1, d, h, min);
 }
+
+/**
+ * Parses an Open-Meteo local ISO time into its absolute instant, using the
+ * response's `utc_offset_seconds`. Unlike `parseLocalTime` (which is for display
+ * and intentionally runner-local), this is timezone-independent — same `getTime()`
+ * whatever `TZ` the browser/CI runs in — so astronomy like `moonPhase` is stable.
+ */
+export function parseAbsoluteTime(iso: string, utcOffsetSeconds = 0): Date {
+  const [date, time = '00:00'] = iso.split('T');
+  const [y, m, d] = date.split('-').map(Number);
+  const [h, min] = time.split(':').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, h, min) - utcOffsetSeconds * 1000);
+}

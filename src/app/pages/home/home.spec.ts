@@ -438,7 +438,8 @@ describe('Home', () => {
     expect(sky).toContain('11h 7m · 3 min shorter than yesterday');
     expect(sky).toContain('06:35–07:35 · 16:42–17:42');
     expect(sky).toContain('Waning gibbous');
-    expect(sky).toContain('85% lit');
+    // utc_offset_seconds is 0, so 2026-09-30T15:30 wall-clock is 15:30Z → ~83% lit.
+    expect(sky).toContain('83% lit');
   });
 
   it('shows a retry button when the request fails', async () => {

@@ -12,6 +12,7 @@ import {
   ForecastResponse,
   minutesBetween,
   moonPhase,
+  parseAbsoluteTime,
   parseLocalTime,
   YesterdayResponse,
 } from '../../../models/weather.models';
@@ -108,7 +109,9 @@ export class Highlights {
     const sunrise = parseLocalTime(daily.sunrise[0]);
     const sunset = parseLocalTime(daily.sunset[0]);
     const before = this.yesterday()?.daily;
-    const moon = moonPhase(parseLocalTime(current.time));
+    // Astronomy needs the absolute instant (place wall-clock minus utc_offset),
+    // not the runner-local Date that parseLocalTime returns for display.
+    const moon = moonPhase(parseAbsoluteTime(current.time, forecast.utc_offset_seconds ?? 0));
     return {
       dayLength: describeDayLength(
         minutesBetween(daily.sunrise[0], daily.sunset[0]),

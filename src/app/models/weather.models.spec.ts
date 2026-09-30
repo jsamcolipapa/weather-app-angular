@@ -8,6 +8,7 @@ import {
   minutesBetween,
   moonPhase,
   outfitTips,
+  parseAbsoluteTime,
   PhotonFeature,
   samePlace,
   shareText,
@@ -191,5 +192,22 @@ describe('moonPhase', () => {
 
     expect(moonPhase(new Date(Date.UTC(2026, 7, 17, 12))).name).toBe('Waxing crescent');
     expect(moonPhase(new Date(Date.UTC(2026, 8, 10, 12))).name).toBe('Waning crescent');
+  });
+
+  it('is timezone-independent when parsed with the utc offset', () => {
+    // 2026-09-30T15:30 at utc_offset_seconds 0 is 15:30Z → ~83% lit (Waning gibbous).
+    const atUtc = moonPhase(parseAbsoluteTime('2026-09-30T15:30', 0));
+    expect(atUtc.name).toBe('Waning gibbous');
+    expect(Math.round(atUtc.illumination * 100)).toBe(83);
+    expect(parseAbsoluteTime('2026-09-30T15:30', 0).getTime()).toBe(
+      Date.UTC(2026, 8, 30, 15, 30),
+    );
+
+    // Same wall-clock in UTC+8 is 07:30Z → ~85% lit; offset must shift the instant.
+    const inManila = moonPhase(parseAbsoluteTime('2026-09-30T15:30', 8 * 3600));
+    expect(Math.round(inManila.illumination * 100)).toBe(85);
+    expect(parseAbsoluteTime('2026-09-30T15:30', 8 * 3600).getTime()).toBe(
+      Date.UTC(2026, 8, 30, 7, 30),
+    );
   });
 });

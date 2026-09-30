@@ -10,13 +10,13 @@
     [matAutocomplete]="auto"
   />
   <button
-    matIconButton
     class="search__locate"
+    type="button"
     aria-label="Use my location"
-    matTooltip="Use my location"
+    title="Use my location"
     (click)="locateRequested.emit()"
   >
-    <mat-icon>my_location</mat-icon>
+    <mat-icon aria-hidden="true">my_location</mat-icon>
   </button>
 </div>
 
@@ -29,7 +29,7 @@
   @switch (status()) {
     @case ('searching') {
       <mat-option class="result result--status" disabled>
-        <mat-progress-spinner mode="indeterminate" diameter="18" />
+        <span class="spinner" aria-hidden="true"></span>
         Searching…
       </mat-option>
     }

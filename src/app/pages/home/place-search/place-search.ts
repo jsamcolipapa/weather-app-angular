@@ -4,10 +4,7 @@ import {
   MatAutocompleteModule,
   MatAutocompleteSelectedEvent,
 } from '@angular/material/autocomplete';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { Place, SearchResult, toSearchResult } from '../../../models/weather.models';
 import { WeatherService } from '../../../services/weather.service';
@@ -18,13 +15,7 @@ const MAX_RESULTS = 6;
 /** Search box that looks places up as you type, plus a "use my location" button. */
 @Component({
   selector: 'app-place-search',
-  imports: [
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule,
-  ],
+  imports: [MatAutocompleteModule, MatIconModule],
   templateUrl: './place-search.html',
   styleUrl: './place-search.scss',
 })

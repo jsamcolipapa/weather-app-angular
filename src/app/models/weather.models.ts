@@ -68,6 +68,8 @@ export interface ForecastResponse {
     weather_code: number[];
     is_day: (0 | 1)[];
     precipitation_probability: (number | null)[];
+    uv_index: number[];
+    wind_speed_10m: number[];
   };
   daily: {
     time: string[];
@@ -90,9 +92,9 @@ export interface CurrentOnlyResponse {
   current: { temperature_2m: number; weather_code: number; is_day: 0 | 1 };
 }
 
-/** Yesterday's and today's highs (`past_days=1`, `forecast_days=1`). */
+/** Yesterday's and today's highs and sun times (`past_days=1`, `forecast_days=1`). */
 export interface YesterdayResponse {
-  daily: { time: string[]; temperature_2m_max: number[] };
+  daily: { time: string[]; temperature_2m_max: number[]; sunrise: string[]; sunset: string[] };
 }
 
 /** Subset of the Open-Meteo air-quality response we request. Pollutants in µg/m³. */
@@ -167,6 +169,112 @@ export function outfitTips(conditions: {
   if (uv >= 3) tips.push({ icon: 'sunny', label: uv >= 6 ? 'Sunscreen & hat' : 'Sunscreen' });
   if (windKmh >= 30) tips.push({ icon: 'air', label: 'Windbreaker' });
   return tips;
+}
+
+/** One hour of conditions in metric units, for `bestOutdoorWindow`. */
+export interface HourConditions {
+  /** Local ISO time, e.g. "2026-09-30T16:00". */
+  time: string;
+  /** °C. */
+  temperature: number;
+  /** Percent. */
+  rainChance: number;
+  uv: number;
+  windKmh: number;
+  isDay: boolean;
+}
+
+/** How unpleasant an hour is outside; 0 is ideal. */
+function outdoorPenalty(hour: HourConditions): number {
+  const tooCold = Math.max(0, 18 - hour.temperature);
+  const tooHot = Math.max(0, hour.temperature - 25);
+  return (
+    (tooCold + tooHot) * 2 +
+    hour.rainChance / 10 +
+    Math.max(0, hour.uv - 5) * 2 +
+    Math.max(0, hour.windKmh - 20) / 5
+  );
+}
+
+/**
+ * The most pleasant `length`-hour daylight window left today (from the current hour), for a
+ * walk or run. Undefined when fewer than `length` daylight hours remain.
+ */
+export function bestOutdoorWindow(
+  hours: HourConditions[],
+  now: string,
+  length = 2,
+): { start: Date; end: Date } | undefined {
+  const from = currentHourIndex(
+    now,
+    hours.map((h) => h.time),
+  );
+  const today = now.slice(0, 10);
+  const candidates = hours.slice(from).filter((h) => h.time.startsWith(today));
+  let best: { index: number; penalty: number } | undefined;
+  for (let i = 0; i + length <= candidates.length; i++) {
+    const window = candidates.slice(i, i + length);
+    if (!window.every((h) => h.isDay)) {
+      continue;
+    }
+    const penalty = window.reduce((sum, h) => sum + outdoorPenalty(h), 0);
+    if (!best || penalty < best.penalty) {
+      best = { index: i, penalty };
+    }
+  }
+  if (!best) {
+    return undefined;
+  }
+  const start = parseLocalTime(candidates[best.index].time);
+  return { start, end: new Date(start.getTime() + length * 3_600_000) };
+}
+
+/** Minutes between two local ISO times, e.g. sunrise and sunset. */
+export function minutesBetween(from: string, to: string): number {
+  return Math.round((parseLocalTime(to).getTime() - parseLocalTime(from).getTime()) / 60_000);
+}
+
+/** e.g. "11h 42m · 1 min longer than yesterday". */
+export function describeDayLength(minutes: number, yesterdayMinutes?: number): string {
+  const length = `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  if (yesterdayMinutes === undefined) {
+    return length;
+  }
+  const diff = minutes - yesterdayMinutes;
+  const change =
+    diff === 0
+      ? 'same as yesterday'
+      : `${Math.abs(diff)} min ${diff > 0 ? 'longer' : 'shorter'} than yesterday`;
+  return `${length} · ${change}`;
+}
+
+/** A new moon to count from, and the average length of a lunar cycle. */
+const KNOWN_NEW_MOON = Date.UTC(2000, 0, 6, 18, 14);
+const SYNODIC_DAYS = 29.530588853;
+
+const MOON_PHASES: [before: number, name: string][] = [
+  [0.03, 'New moon'],
+  [0.22, 'Waxing crescent'],
+  [0.28, 'First quarter'],
+  [0.47, 'Waxing gibbous'],
+  [0.53, 'Full moon'],
+  [0.72, 'Waning gibbous'],
+  [0.78, 'Last quarter'],
+  [0.97, 'Waning crescent'],
+];
+
+/**
+ * Moon phase for `date`. `cycle` runs 0 → 1 from new moon through full (0.5) and back;
+ * `illumination` is the lit fraction of the disc. Accurate to within about a day.
+ */
+export function moonPhase(date: Date): { cycle: number; illumination: number; name: string } {
+  const days = (date.getTime() - KNOWN_NEW_MOON) / 86_400_000;
+  const cycle = (((days / SYNODIC_DAYS) % 1) + 1) % 1;
+  return {
+    cycle,
+    illumination: (1 - Math.cos(2 * Math.PI * cycle)) / 2,
+    name: MOON_PHASES.find(([before]) => cycle < before)?.[1] ?? 'New moon',
+  };
 }
 
 /** e.g. "3° warmer than yesterday". Differences under 1° count as the same. */

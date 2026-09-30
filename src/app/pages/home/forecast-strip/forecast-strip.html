@@ -1,0 +1,50 @@
+<ol class="forecast" [attr.aria-busy]="loading()">
+  @if (loading()) {
+    @for (_ of skeletonSlots(); track $index) {
+      <li class="forecast__item" aria-hidden="true">
+        <span class="skeleton skeleton--text" style="width: 32px"></span>
+        <span class="skeleton skeleton--circle forecast__icon"></span>
+        <span class="skeleton skeleton--text" style="width: 48px"></span>
+      </li>
+    }
+  } @else if (view() === 'week') {
+    @for (day of days(); track day.key; let i = $index) {
+      <li>
+        <button
+          class="forecast__item forecast__item--button"
+          [class.forecast__item--selected]="selectedDay() === i"
+          type="button"
+          [attr.aria-expanded]="selectedDay() === i"
+          (click)="daySelected.emit(i)"
+        >
+          <span class="forecast__label">{{ day.label | date: 'EEE' }}</span>
+          <mat-icon
+            class="forecast__icon filled"
+            [class]="'tone-' + day.condition.tone"
+            [attr.aria-label]="day.condition.label"
+          >
+            {{ day.condition.icon }}
+          </mat-icon>
+          <span class="forecast__temps">
+            {{ day.high | number: '1.0-0' }}°
+            <span class="forecast__low">{{ day.low | number: '1.0-0' }}°</span>
+          </span>
+        </button>
+      </li>
+    }
+  } @else {
+    @for (hour of hours(); track hour.key) {
+      <li class="forecast__item">
+        <span class="forecast__label">{{ hour.label | date: 'HH:mm' }}</span>
+        <mat-icon
+          class="forecast__icon filled"
+          [class]="'tone-' + hour.condition.tone"
+          [attr.aria-label]="hour.condition.label"
+        >
+          {{ hour.condition.icon }}
+        </mat-icon>
+        <span class="forecast__temps">{{ hour.temperature | number: '1.0-0' }}°</span>
+      </li>
+    }
+  }
+</ol>

@@ -8,105 +8,17 @@
         (locateRequested)="useMyLocation()"
       />
       <app-saved-places [active]="place()" [unit]="unit()" (placeSelected)="place.set($event)" />
-
-      <div class="current" aria-live="polite" [attr.aria-busy]="forecast.isLoading()">
-        @if (forecast.error()) {
-          <div class="state">
-            <mat-icon class="state__icon" aria-hidden="true">cloud_off</mat-icon>
-            <p>Couldn't load the weather.</p>
-            <button matButton="tonal" (click)="forecast.reload()">Try again</button>
-          </div>
-        } @else if (current(); as now) {
-          <mat-icon
-            class="current__icon filled"
-            [class]="'tone-' + now.condition.tone"
-            aria-hidden="true"
-          >
-            {{ now.condition.icon }}
-          </mat-icon>
-          <p class="current__temp">
-            {{ now.temperature | number: '1.0-0' }}<span class="current__unit">{{ now.unit }}</span>
-          </p>
-          <p class="current__time">
-            {{ now.time | date: 'EEEE' }},
-            <span class="current__clock">{{ now.time | date: 'HH:mm' }}</span>
-          </p>
-          @if (comparedToYesterday(); as comparison) {
-            <p class="current__compare">{{ comparison }}</p>
-          }
-
-          <hr class="current__divider" />
-
-          <ul class="current__facts">
-            <li class="current__condition">
-              <mat-icon class="filled" [class]="'tone-' + now.condition.tone" aria-hidden="true">
-                {{ now.condition.icon }}
-              </mat-icon>
-              {{ now.condition.label }}
-            </li>
-            <li>
-              <mat-icon class="tone-rain" aria-hidden="true">rainy</mat-icon>
-              Rain – {{ now.rainChance ?? 0 }}%
-            </li>
-            <li>
-              <mat-icon class="tone-cloud" aria-hidden="true">thermostat</mat-icon>
-              Feels like {{ now.feelsLike | number: '1.0-0' }}°
-            </li>
-          </ul>
-
-          @if (wearTips(); as tips) {
-            <div class="wear">
-              <h3 class="wear__title">What to wear</h3>
-              <ul class="wear__tips">
-                @for (tip of tips; track tip.label) {
-                  <li class="wear__tip">
-                    <mat-icon aria-hidden="true">{{ tip.icon }}</mat-icon>
-                    {{ tip.label }}
-                  </li>
-                }
-              </ul>
-            </div>
-          }
-
-          <div class="place">
-            <mat-icon aria-hidden="true">{{
-              isDeviceLocation() ? 'my_location' : 'location_on'
-            }}</mat-icon>
-            <p class="place__name">{{ placeName() }}</p>
-            <button
-              class="place__action place__action--save"
-              type="button"
-              (click)="toggleFavourite()"
-              [attr.aria-pressed]="isFavourite()"
-              aria-label="Save this place"
-            >
-              <mat-icon [class.filled]="isFavourite()" aria-hidden="true">star</mat-icon>
-            </button>
-            <button
-              class="place__action place__action--share"
-              type="button"
-              (click)="share()"
-              [attr.aria-label]="copied() ? 'Copied to clipboard' : 'Share this weather'"
-            >
-              <mat-icon aria-hidden="true">{{ copied() ? 'check' : 'share' }}</mat-icon>
-            </button>
-          </div>
-        } @else {
-          <div class="current__skeleton" aria-hidden="true">
-            <span class="skeleton skeleton--circle current__icon"></span>
-            <span class="skeleton current__temp-skeleton"></span>
-            <span class="skeleton skeleton--text" style="width: 60%"></span>
-            <hr class="current__divider" />
-            <ul class="current__facts">
-              @for (width of ['55%', '45%', '50%']; track $index) {
-                <li><span class="skeleton skeleton--text" [style.width]="width"></span></li>
-              }
-            </ul>
-            <span class="skeleton place"></span>
-          </div>
-          <span class="visually-hidden">Loading weather…</span>
-        }
-      </div>
+      <app-current-conditions
+        [place]="place()"
+        [now]="current()"
+        [error]="!!forecast.error()"
+        [loading]="forecast.isLoading()"
+        [placeName]="placeName()"
+        [comparison]="comparedToYesterday()"
+        [wearTips]="wearTips()"
+        [bestTime]="bestTime()"
+        (retry)="forecast.reload()"
+      />
     </aside>
 
     <section class="main">
@@ -173,59 +85,16 @@
       }
 
       @if (!forecast.error()) {
-        @let h = highlights();
-        <ol class="forecast" [attr.aria-busy]="!h">
-          @if (!h) {
-            @for (_ of skeletonSlots(); track $index) {
-              <li class="forecast__item" aria-hidden="true">
-                <span class="skeleton skeleton--text" style="width: 32px"></span>
-                <span class="skeleton skeleton--circle forecast__icon"></span>
-                <span class="skeleton skeleton--text" style="width: 48px"></span>
-              </li>
-            }
-          } @else if (view() === 'week') {
-            @for (day of week(); track day.key; let i = $index) {
-              <li>
-                <button
-                  class="forecast__item forecast__item--button"
-                  [class.forecast__item--selected]="selectedDay() === i"
-                  type="button"
-                  [attr.aria-expanded]="selectedDay() === i"
-                  (click)="toggleDay(i)"
-                >
-                  <span class="forecast__label">{{ day.label | date: 'EEE' }}</span>
-                  <mat-icon
-                    class="forecast__icon filled"
-                    [class]="'tone-' + day.condition.tone"
-                    [attr.aria-label]="day.condition.label"
-                  >
-                    {{ day.condition.icon }}
-                  </mat-icon>
-                  <span class="forecast__temps">
-                    {{ day.high | number: '1.0-0' }}°
-                    <span class="forecast__low">{{ day.low | number: '1.0-0' }}°</span>
-                  </span>
-                </button>
-              </li>
-            }
-          } @else {
-            @for (hour of hours(); track hour.key) {
-              <li class="forecast__item">
-                <span class="forecast__label">{{ hour.label | date: 'HH:mm' }}</span>
-                <mat-icon
-                  class="forecast__icon filled"
-                  [class]="'tone-' + hour.condition.tone"
-                  [attr.aria-label]="hour.condition.label"
-                >
-                  {{ hour.condition.icon }}
-                </mat-icon>
-                <span class="forecast__temps">{{ hour.temperature | number: '1.0-0' }}°</span>
-              </li>
-            }
-          }
-        </ol>
+        <app-forecast-strip
+          [view]="view()"
+          [loading]="!forecast.hasValue()"
+          [days]="week()"
+          [hours]="hours()"
+          [selectedDay]="selectedDay()"
+          (daySelected)="toggleDay($event)"
+        />
 
-        @if (h && view() === 'today') {
+        @if (forecast.hasValue() && view() === 'today') {
           <app-hourly-chart [points]="next24Hours()" />
         } @else if (view() === 'week' && dayDetails(); as details) {
           <app-day-details
@@ -236,173 +105,14 @@
         }
 
         <h2 class="main__title">Today's Highlights</h2>
-
-        <div class="highlights">
-          <article class="card">
-            <h3 class="card__title">UV Index</h3>
-            @if (h) {
-              <div class="gauge">
-                <svg viewBox="-10 -12 140 82" aria-hidden="true">
-                  <path class="gauge__track" d="M 12 62 A 48 48 0 0 1 108 62" pathLength="100" />
-                  <path
-                    class="gauge__fill"
-                    d="M 12 62 A 48 48 0 0 1 108 62"
-                    pathLength="100"
-                    [attr.stroke-dasharray]="h.uv.percent + ' 100'"
-                  />
-                  @for (tick of uvTicks; track tick.value) {
-                    <text class="gauge__tick" [attr.x]="tick.x" [attr.y]="tick.y">
-                      {{ tick.value }}
-                    </text>
-                  }
-                </svg>
-                <p class="gauge__value">{{ h.uv.value | number: '1.0-0' }}</p>
-              </div>
-              <p class="card__status">{{ h.uv.label }}</p>
-            } @else {
-              <span class="skeleton gauge-skeleton" aria-hidden="true"></span>
-              <span
-                class="skeleton skeleton--text card__status"
-                style="width: 40%"
-                aria-hidden="true"
-              ></span>
-            }
-          </article>
-
-          <article class="card">
-            <h3 class="card__title">Wind Status</h3>
-            @if (h) {
-              <p class="card__value">
-                {{ h.wind.speed | number: '1.0-2'
-                }}<button
-                  class="card__unit card__unit--toggle"
-                  type="button"
-                  (click)="cycleWindUnit()"
-                  aria-label="Change wind speed unit"
-                >
-                  {{ windUnitLabel() }}
-                </button>
-              </p>
-              <p class="card__status">
-                <span class="compass">
-                  <mat-icon
-                    class="filled"
-                    [style.rotate.deg]="h.wind.arrowRotation"
-                    aria-hidden="true"
-                    >navigation</mat-icon
-                  >
-                </span>
-                {{ h.wind.direction }}
-              </p>
-            } @else {
-              <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
-              <span
-                class="skeleton skeleton--text card__status"
-                style="width: 40%"
-                aria-hidden="true"
-              ></span>
-            }
-          </article>
-
-          <article class="card">
-            <h3 class="card__title">Sunrise &amp; Sunset</h3>
-            @if (h) {
-              <ul class="sun">
-                <li class="sun__row">
-                  <span class="sun__badge"
-                    ><mat-icon aria-hidden="true">arrow_upward</mat-icon></span
-                  >
-                  <span>
-                    <span class="sun__time">{{ h.sunrise | date: 'h:mm a' }}</span>
-                    <span class="sun__caption">Sunrise</span>
-                  </span>
-                </li>
-                <li class="sun__row">
-                  <span class="sun__badge"
-                    ><mat-icon aria-hidden="true">arrow_downward</mat-icon></span
-                  >
-                  <span>
-                    <span class="sun__time">{{ h.sunset | date: 'h:mm a' }}</span>
-                    <span class="sun__caption">Sunset</span>
-                  </span>
-                </li>
-              </ul>
-            } @else {
-              <ul class="sun" aria-hidden="true">
-                @for (_ of [0, 1]; track $index) {
-                  <li class="sun__row">
-                    <span class="skeleton skeleton--circle sun__badge"></span>
-                    <span class="skeleton skeleton--text" style="width: 72px"></span>
-                  </li>
-                }
-              </ul>
-            }
-          </article>
-
-          <article class="card card--meter">
-            <h3 class="card__title">Humidity</h3>
-            @if (h) {
-              <p class="card__value">
-                {{ h.humidity.value }}<span class="card__unit card__unit--sup">%</span>
-              </p>
-              <p class="card__status">{{ h.humidity.label }}</p>
-              <span class="meter" [style.--level]="h.humidity.value" aria-hidden="true"></span>
-            } @else {
-              <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
-              <span
-                class="skeleton skeleton--text card__status"
-                style="width: 40%"
-                aria-hidden="true"
-              ></span>
-            }
-          </article>
-
-          <article class="card">
-            <h3 class="card__title">Visibility</h3>
-            @if (h) {
-              <p class="card__value">
-                {{ h.visibility.value | number: '1.0-1' }}<span class="card__unit">km</span>
-              </p>
-              <p class="card__status">{{ h.visibility.label }}</p>
-            } @else {
-              <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
-              <span
-                class="skeleton skeleton--text card__status"
-                style="width: 40%"
-                aria-hidden="true"
-              ></span>
-            }
-          </article>
-
-          <article class="card card--meter">
-            <h3 class="card__title">Air Quality</h3>
-            @if (airQuality(); as aq) {
-              <p class="card__value">{{ aq.value }}</p>
-              <p class="card__status">{{ aq.label }}</p>
-              @if (aq.pollutants.length) {
-                <dl class="pollutants">
-                  @for (p of aq.pollutants; track p.key) {
-                    <div>
-                      <dt>{{ p.label }}</dt>
-                      <dd>{{ p.value | number: '1.0-0' }}</dd>
-                    </div>
-                  }
-                </dl>
-              }
-              <span class="meter meter--aqi" [style.--level]="aq.percent" aria-hidden="true"></span>
-            } @else if (air.error() || air.hasValue()) {
-              <p class="card__value">–</p>
-              <p class="card__status">Unavailable</p>
-            } @else {
-              <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
-              <span
-                class="skeleton skeleton--text card__status"
-                style="width: 40%"
-                aria-hidden="true"
-              ></span>
-            }
-          </article>
-        </div>
+        <app-highlights
+          [forecast]="forecast.value()"
+          [yesterday]="yesterday.value()"
+          [air]="air.value()"
+          [airSettled]="!!air.error() || air.hasValue()"
+          [windUnitLabel]="windUnitLabel()"
+          (windUnitCycled)="cycleWindUnit()"
+        />
 
         @if (place(); as p) {
           <h2 class="main__title">Rain Radar</h2>

@@ -1,59 +1,81 @@
-# WeatherAppAngular
+# Weather
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.0.
+A weather dashboard built with Angular 22 and Angular Material. Live at
+**https://jsamcolipapa.github.io/weather-app-angular/**.
 
-## Development server
+## Features
 
-To start a local development server, run:
+- **Now:** current conditions, feels-like, comparison with yesterday, what to wear and the best
+  2-hour window to be outside.
+- **Forecast:** next 24 hours (with a temperature and rain-chance chart) or 7 days; click a day
+  for its hourly breakdown, rain total, wind and UV.
+- **Highlights:** UV, wind (km/h, mph or m/s), sunrise and sunset, humidity, visibility, air
+  quality with pollutants, day length, golden hour and moon phase.
+- **Rain:** a heads-up when rain starts or stops within the hour, optional browser notifications,
+  and an animated radar map.
+- **Places:** search, device location, saved places with live temperatures, and sharing.
+- **Look:** the sky, panels and an animated backdrop follow the time of day and the weather.
+- **App:** installable, works offline with the last forecast, remembers your settings.
 
-```bash
-ng serve
-```
+Weather data comes from free, key-less services: [Open-Meteo](https://open-meteo.com/) (forecast,
+air quality), [Photon](https://photon.komoot.io/) (search),
+[BigDataCloud](https://www.bigdatacloud.com/) (place names),
+[RainViewer](https://www.rainviewer.com/) (radar) and
+[OpenStreetMap](https://www.openstreetmap.org/) (map tiles).
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Getting started
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+Requires **Node.js 22.22.3 or newer** (Node 24 recommended).
 
 ```bash
-ng build
+npm install
+npm start          # http://localhost:4200
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+### Endpoints (`.env`)
 
-## Running unit tests
+API URLs are read from a `.env` file in the project root, which `scripts/set-env.mjs` turns into
+`src/environments/environment.ts` before every start, build and test. Real environment variables
+override the file. `.env` is not committed; create it with:
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
+```env
+FORECAST_URL=https://api.open-meteo.com/v1/forecast
+AIR_QUALITY_URL=https://air-quality-api.open-meteo.com/v1/air-quality
+SEARCH_URL=https://photon.komoot.io/api/
+REVERSE_GEOCODE_URL=https://api.bigdatacloud.net/data/reverse-geocode-client
+RAINVIEWER_URL=https://api.rainviewer.com/public/weather-maps.json
+MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
 ```
 
-## Running end-to-end tests
+These URLs end up in the browser bundle, so don't put secrets in `.env`.
 
-For end-to-end (e2e) testing, run:
+## Scripts
 
-```bash
-ng e2e
+| Command         | What it does                                                        |
+| --------------- | ------------------------------------------------------------------- |
+| `npm start`     | Dev server with reload on http://localhost:4200                     |
+| `npm test`      | Unit tests (Vitest, jsdom); add `-- --watch=false` for a single run |
+| `npm run build` | Production build into `dist/weather-app-angular/browser`            |
+| `npm run env`   | Regenerate `environment.ts` from `.env`                             |
+
+The service worker only runs in production builds. To try offline mode or installing, serve the
+build output, e.g. `npx http-server dist/weather-app-angular/browser`.
+
+## Project structure
+
+```
+src/app/
+├── models/     # API response types and pure helpers (formatting, rain, outfit, moon…)
+├── services/   # WeatherService (API calls), PreferencesService (localStorage), notify
+└── pages/home/ # Home page and its sections: current-conditions, forecast-strip,
+                # highlights, hourly-chart, day-details, rain-map, saved-places,
+                # place-search, weather-backdrop
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Deployment
 
-## Additional Resources
+`.github/workflows/deploy.yml` runs the tests and a build on every pull request. On pushes to
+`main` it also publishes the build to GitHub Pages (only if the tests pass). The endpoint URLs
+above are the workflow's defaults; set a repository variable with the same name to override one.
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+One-time setup: **Settings → Pages → Source: GitHub Actions**.

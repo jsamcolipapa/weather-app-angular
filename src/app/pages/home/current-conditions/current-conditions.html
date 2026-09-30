@@ -1,0 +1,106 @@
+<div class="current" aria-live="polite" [attr.aria-busy]="loading()">
+  @if (error()) {
+    <div class="state">
+      <mat-icon class="state__icon" aria-hidden="true">cloud_off</mat-icon>
+      <p>Couldn't load the weather.</p>
+      <button class="retry" type="button" (click)="retry.emit()">Try again</button>
+    </div>
+  } @else if (now(); as now) {
+    <mat-icon
+      class="current__icon filled"
+      [class]="'tone-' + now.condition.tone"
+      aria-hidden="true"
+    >
+      {{ now.condition.icon }}
+    </mat-icon>
+    <p class="current__temp">
+      {{ now.temperature | number: '1.0-0' }}<span class="current__unit">{{ now.unit }}</span>
+    </p>
+    <p class="current__time">
+      {{ now.time | date: 'EEEE' }},
+      <span class="current__clock">{{ now.time | date: 'HH:mm' }}</span>
+    </p>
+    @if (comparison(); as comparison) {
+      <p class="current__compare">{{ comparison }}</p>
+    }
+
+    <hr class="current__divider" />
+
+    <ul class="current__facts">
+      <li class="current__condition">
+        <mat-icon class="filled" [class]="'tone-' + now.condition.tone" aria-hidden="true">
+          {{ now.condition.icon }}
+        </mat-icon>
+        {{ now.condition.label }}
+      </li>
+      <li>
+        <mat-icon class="tone-rain" aria-hidden="true">rainy</mat-icon>
+        Rain – {{ now.rainChance ?? 0 }}%
+      </li>
+      <li>
+        <mat-icon class="tone-cloud" aria-hidden="true">thermostat</mat-icon>
+        Feels like {{ now.feelsLike | number: '1.0-0' }}°
+      </li>
+    </ul>
+
+    @if (wearTips(); as tips) {
+      <div class="wear">
+        <h3 class="wear__title">What to wear</h3>
+        <ul class="wear__tips">
+          @for (tip of tips; track tip.label) {
+            <li class="wear__tip">
+              <mat-icon aria-hidden="true">{{ tip.icon }}</mat-icon>
+              {{ tip.label }}
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    @if (bestTime(); as best) {
+      <p class="best-time">
+        <mat-icon aria-hidden="true">directions_walk</mat-icon>
+        Best time outside
+        <strong>{{ best.start | date: 'HH:mm' }}–{{ best.end | date: 'HH:mm' }}</strong>
+      </p>
+    }
+
+    <div class="place">
+      <mat-icon aria-hidden="true">{{
+        isDeviceLocation() ? 'my_location' : 'location_on'
+      }}</mat-icon>
+      <p class="place__name">{{ placeName() }}</p>
+      <button
+        class="place__action place__action--save"
+        type="button"
+        (click)="toggleFavourite()"
+        [attr.aria-pressed]="isFavourite()"
+        aria-label="Save this place"
+      >
+        <mat-icon [class.filled]="isFavourite()" aria-hidden="true">star</mat-icon>
+      </button>
+      <button
+        class="place__action place__action--share"
+        type="button"
+        (click)="share()"
+        [attr.aria-label]="copied() ? 'Copied to clipboard' : 'Share this weather'"
+      >
+        <mat-icon aria-hidden="true">{{ copied() ? 'check' : 'share' }}</mat-icon>
+      </button>
+    </div>
+  } @else {
+    <div class="current__skeleton" aria-hidden="true">
+      <span class="skeleton skeleton--circle current__icon"></span>
+      <span class="skeleton current__temp-skeleton"></span>
+      <span class="skeleton skeleton--text" style="width: 60%"></span>
+      <hr class="current__divider" />
+      <ul class="current__facts">
+        @for (width of ['55%', '45%', '50%']; track $index) {
+          <li><span class="skeleton skeleton--text" [style.width]="width"></span></li>
+        }
+      </ul>
+      <span class="skeleton place"></span>
+    </div>
+    <span class="visually-hidden">Loading weather…</span>
+  }
+</div>

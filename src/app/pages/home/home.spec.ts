@@ -61,6 +61,11 @@ const response: ForecastResponse = {
     weather_code: hours.map(() => 0),
     is_day: hours.map(() => 1),
     precipitation_probability: hours.map(() => 20),
+    // Strong midday sun (10:00–16:00), calm otherwise.
+    uv_index: hours.map((h) =>
+      Number(h.slice(11, 13)) >= 10 && Number(h.slice(11, 13)) <= 16 ? 8 : 0,
+    ),
+    wind_speed_10m: hours.map(() => 10),
   },
   daily: {
     time: days,
@@ -81,7 +86,12 @@ const airResponse: AirQualityResponse = {
 };
 
 const yesterdayResponse: YesterdayResponse = {
-  daily: { time: ['2026-09-29', '2026-09-30'], temperature_2m_max: [12.2, 15] },
+  daily: {
+    time: ['2026-09-29', '2026-09-30'],
+    temperature_2m_max: [12.2, 15],
+    sunrise: ['2026-09-29T06:34', '2026-09-30T06:35'],
+    sunset: ['2026-09-29T17:44', '2026-09-30T17:42'],
+  },
 };
 
 /** The main forecast (not the "yesterday" or saved-places lookups on the same endpoint). */
@@ -406,6 +416,29 @@ describe('Home', () => {
     expect(text(el, '.map-placeholder')).toContain('Show rain radar');
     expect(el.querySelector('app-rain-map')).toBeNull();
     httpTesting.expectNone((r) => r.url === RAINVIEWER_URL);
+  });
+
+  it('suggests the best time to be outside', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    // From 15:30: the 15:00 and 16:00 hours still have UV 8, so the first calm pair is 17–19.
+    expect(text(el, '.best-time')).toBe('directions_walk Best time outside 17:00–19:00');
+  });
+
+  it('shows day length, golden hour and the moon', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    const sky = text(el, '.sky');
+    expect(sky).toContain('11h 7m · 3 min shorter than yesterday');
+    expect(sky).toContain('06:35–07:35 · 16:42–17:42');
+    expect(sky).toContain('Waning gibbous');
+    expect(sky).toContain('85% lit');
   });
 
   it('shows a retry button when the request fails', async () => {

@@ -1,7 +1,12 @@
 import {
+  bestOutdoorWindow,
   compareToYesterday,
   currentHourIndex,
+  describeDayLength,
   describeNextHourRain,
+  HourConditions,
+  minutesBetween,
+  moonPhase,
   outfitTips,
   PhotonFeature,
   samePlace,
@@ -129,5 +134,62 @@ describe('outfitTips', () => {
   it('adds rain, sun and wind gear when needed', () => {
     expect(tips(21, 60, 7, 35)).toEqual(['T-shirt', 'Umbrella', 'Sunscreen & hat', 'Windbreaker']);
     expect(tips(21, 39, 3, 29)).toEqual(['T-shirt', 'Sunscreen']);
+  });
+});
+
+describe('bestOutdoorWindow', () => {
+  const hour = (h: number, changes: Partial<HourConditions> = {}): HourConditions => ({
+    time: `2026-09-30T${String(h).padStart(2, '0')}:00`,
+    temperature: 21,
+    rainChance: 0,
+    uv: 2,
+    windKmh: 5,
+    isDay: h >= 6 && h < 18,
+    ...changes,
+  });
+  const day = (changes: Record<number, Partial<HourConditions>> = {}) =>
+    Array.from({ length: 24 }, (_, h) => hour(h, changes[h]));
+  const times = (w: { start: Date; end: Date } | undefined) =>
+    w && [w.start.getHours(), w.end.getHours()];
+
+  it('picks the earliest ideal window from now', () => {
+    expect(times(bestOutdoorWindow(day(), '2026-09-30T09:20'))).toEqual([9, 11]);
+  });
+
+  it('avoids rain, strong sun, wind and cold', () => {
+    const hours = day({
+      9: { rainChance: 80 },
+      10: { uv: 9 },
+      11: { windKmh: 45 },
+      12: { temperature: 8 },
+      14: { rainChance: 10 },
+    });
+    expect(times(bestOutdoorWindow(hours, '2026-09-30T09:00'))).toEqual([15, 17]);
+  });
+
+  it('only uses daylight hours left today', () => {
+    expect(bestOutdoorWindow(day(), '2026-09-30T17:10')).toBeUndefined();
+  });
+});
+
+describe('describeDayLength', () => {
+  it('formats the length and the change since yesterday', () => {
+    expect(describeDayLength(minutesBetween('2026-09-30T06:35', '2026-09-30T17:42'))).toBe(
+      '11h 7m',
+    );
+    expect(describeDayLength(667, 670)).toBe('11h 7m · 3 min shorter than yesterday');
+    expect(describeDayLength(701, 699)).toBe('11h 41m · 2 min longer than yesterday');
+    expect(describeDayLength(700, 700)).toBe('11h 40m · same as yesterday');
+  });
+});
+
+describe('moonPhase', () => {
+  it('names the phase and how much is lit', () => {
+    const full = moonPhase(new Date(Date.UTC(2026, 8, 26, 12)));
+    expect(full.name).toBe('Full moon');
+    expect(full.illumination).toBeGreaterThan(0.99);
+
+    expect(moonPhase(new Date(Date.UTC(2026, 7, 17, 12))).name).toBe('Waxing crescent');
+    expect(moonPhase(new Date(Date.UTC(2026, 8, 10, 12))).name).toBe('Waning crescent');
   });
 });

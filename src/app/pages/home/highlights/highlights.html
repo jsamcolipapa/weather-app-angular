@@ -1,0 +1,206 @@
+@let h = highlights();
+<div class="highlights">
+  <article class="card">
+    <h3 class="card__title">UV Index</h3>
+    @if (h) {
+      <div class="gauge">
+        <svg viewBox="-10 -12 140 82" aria-hidden="true">
+          <path class="gauge__track" d="M 12 62 A 48 48 0 0 1 108 62" pathLength="100" />
+          <path
+            class="gauge__fill"
+            d="M 12 62 A 48 48 0 0 1 108 62"
+            pathLength="100"
+            [attr.stroke-dasharray]="h.uv.percent + ' 100'"
+          />
+          @for (tick of uvTicks; track tick.value) {
+            <text class="gauge__tick" [attr.x]="tick.x" [attr.y]="tick.y">
+              {{ tick.value }}
+            </text>
+          }
+        </svg>
+        <p class="gauge__value">{{ h.uv.value | number: '1.0-0' }}</p>
+      </div>
+      <p class="card__status">{{ h.uv.label }}</p>
+    } @else {
+      <span class="skeleton gauge-skeleton" aria-hidden="true"></span>
+      <span
+        class="skeleton skeleton--text card__status"
+        style="width: 40%"
+        aria-hidden="true"
+      ></span>
+    }
+  </article>
+
+  <article class="card">
+    <h3 class="card__title">Wind Status</h3>
+    @if (h) {
+      <p class="card__value">
+        {{ h.wind.speed | number: '1.0-2'
+        }}<button
+          class="card__unit card__unit--toggle"
+          type="button"
+          (click)="windUnitCycled.emit()"
+          aria-label="Change wind speed unit"
+        >
+          {{ windUnitLabel() }}
+        </button>
+      </p>
+      <p class="card__status">
+        <span class="compass">
+          <mat-icon class="filled" [style.rotate.deg]="h.wind.arrowRotation" aria-hidden="true"
+            >navigation</mat-icon
+          >
+        </span>
+        {{ h.wind.direction }}
+      </p>
+    } @else {
+      <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
+      <span
+        class="skeleton skeleton--text card__status"
+        style="width: 40%"
+        aria-hidden="true"
+      ></span>
+    }
+  </article>
+
+  <article class="card">
+    <h3 class="card__title">Sunrise &amp; Sunset</h3>
+    @if (h) {
+      <ul class="sun">
+        <li class="sun__row">
+          <span class="sun__badge"><mat-icon aria-hidden="true">arrow_upward</mat-icon></span>
+          <span>
+            <span class="sun__time">{{ h.sunrise | date: 'h:mm a' }}</span>
+            <span class="sun__caption">Sunrise</span>
+          </span>
+        </li>
+        <li class="sun__row">
+          <span class="sun__badge"><mat-icon aria-hidden="true">arrow_downward</mat-icon></span>
+          <span>
+            <span class="sun__time">{{ h.sunset | date: 'h:mm a' }}</span>
+            <span class="sun__caption">Sunset</span>
+          </span>
+        </li>
+      </ul>
+    } @else {
+      <ul class="sun" aria-hidden="true">
+        @for (_ of [0, 1]; track $index) {
+          <li class="sun__row">
+            <span class="skeleton skeleton--circle sun__badge"></span>
+            <span class="skeleton skeleton--text" style="width: 72px"></span>
+          </li>
+        }
+      </ul>
+    }
+  </article>
+
+  <article class="card card--meter">
+    <h3 class="card__title">Humidity</h3>
+    @if (h) {
+      <p class="card__value">
+        {{ h.humidity.value }}<span class="card__unit card__unit--sup">%</span>
+      </p>
+      <p class="card__status">{{ h.humidity.label }}</p>
+      <span class="meter" [style.--level]="h.humidity.value" aria-hidden="true"></span>
+    } @else {
+      <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
+      <span
+        class="skeleton skeleton--text card__status"
+        style="width: 40%"
+        aria-hidden="true"
+      ></span>
+    }
+  </article>
+
+  <article class="card">
+    <h3 class="card__title">Visibility</h3>
+    @if (h) {
+      <p class="card__value">
+        {{ h.visibility.value | number: '1.0-1' }}<span class="card__unit">km</span>
+      </p>
+      <p class="card__status">{{ h.visibility.label }}</p>
+    } @else {
+      <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
+      <span
+        class="skeleton skeleton--text card__status"
+        style="width: 40%"
+        aria-hidden="true"
+      ></span>
+    }
+  </article>
+
+  <article class="card card--meter">
+    <h3 class="card__title">Air Quality</h3>
+    @if (airQuality(); as aq) {
+      <p class="card__value">{{ aq.value }}</p>
+      <p class="card__status">{{ aq.label }}</p>
+      @if (aq.pollutants.length) {
+        <dl class="pollutants">
+          @for (p of aq.pollutants; track p.key) {
+            <div>
+              <dt>{{ p.label }}</dt>
+              <dd>{{ p.value | number: '1.0-0' }}</dd>
+            </div>
+          }
+        </dl>
+      }
+      <span class="meter meter--aqi" [style.--level]="aq.percent" aria-hidden="true"></span>
+    } @else if (airSettled()) {
+      <p class="card__value">–</p>
+      <p class="card__status">Unavailable</p>
+    } @else {
+      <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
+      <span
+        class="skeleton skeleton--text card__status"
+        style="width: 40%"
+        aria-hidden="true"
+      ></span>
+    }
+  </article>
+
+  <article class="card card--wide">
+    <h3 class="card__title">Sun &amp; Moon</h3>
+    @if (sky(); as sky) {
+      <div class="sky">
+        <div class="sky__item">
+          <mat-icon class="sky__icon tone-sun filled" aria-hidden="true">wb_twilight</mat-icon>
+          <div>
+            <span class="sky__label">Day length</span>
+            <span class="sky__value">{{ sky.dayLength }}</span>
+          </div>
+        </div>
+        <div class="sky__item">
+          <mat-icon class="sky__icon tone-sun filled" aria-hidden="true">photo_camera</mat-icon>
+          <div>
+            <span class="sky__label">Golden hour</span>
+            <span class="sky__value">
+              {{ sky.goldenMorning.start | date: 'HH:mm' }}–{{
+                sky.goldenMorning.end | date: 'HH:mm'
+              }}
+              · {{ sky.goldenEvening.start | date: 'HH:mm' }}–{{
+                sky.goldenEvening.end | date: 'HH:mm'
+              }}
+            </span>
+          </div>
+        </div>
+        <div class="sky__item">
+          <svg class="moon" [attr.viewBox]="'0 0 ' + moonSize + ' ' + moonSize" aria-hidden="true">
+            <circle
+              class="moon__disc"
+              [attr.cx]="moonSize / 2"
+              [attr.cy]="moonSize / 2"
+              [attr.r]="moonSize / 2"
+            />
+            <path class="moon__lit" [attr.d]="sky.moon.path" />
+          </svg>
+          <div>
+            <span class="sky__label">{{ sky.moon.name }}</span>
+            <span class="sky__value">{{ sky.moon.illumination * 100 | number: '1.0-0' }}% lit</span>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <span class="skeleton skeleton--text" style="width: 60%" aria-hidden="true"></span>
+    }
+  </article>
+</div>

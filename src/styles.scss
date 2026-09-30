@@ -36,3 +36,94 @@ body {
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-body-medium);
 }
+
+// Shared building blocks used across the home page's components ----------------
+
+// Icon tints per weather family (see `WeatherTone`).
+:root {
+  --tone-sun: #f7b733;
+  --tone-night: #7a80d8;
+  --tone-cloud: #9aa3b2;
+  --tone-fog: #a9b0bc;
+  --tone-rain: #4b5fd6;
+  --tone-snow: #5fb3e8;
+  --tone-storm: #7d52d8;
+}
+
+@each $tone in 'sun', 'night', 'cloud', 'fog', 'rain', 'snow', 'storm' {
+  .tone-#{$tone} {
+    color: var(--tone-#{$tone});
+  }
+}
+
+// Solid (filled) variant of a Material Symbols icon.
+.filled {
+  font-variation-settings: 'FILL' 1;
+}
+
+// Rounded surface for highlight cards, the radar map and similar panels. `--card-bg` is set
+// on the home page and follows the time-of-day tint.
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 150px;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: var(--card-bg);
+}
+
+// Grey placeholder with a shimmer, sized by the element it stands in for.
+.skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container-high);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    translate: -100% 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--mat-sys-surface-container-lowest) 60%, transparent),
+      transparent
+    );
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+
+  &--circle {
+    border-radius: 50%;
+  }
+
+  &--text {
+    height: 1em;
+    border-radius: 999px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      animation: none;
+    }
+  }
+}
+
+@keyframes shimmer {
+  to {
+    translate: 100% 0;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -1,10 +1,38 @@
 <div #map class="map" role="region" aria-label="Rain radar map"></div>
-<p class="caption">
-  @if (frame(); as f) {
-    Radar as of {{ f.time | date: 'HH:mm' }}
-  } @else if (radarError()) {
-    Radar isn't available right now
-  } @else {
-    Loading radar…
-  }
-</p>
+
+@if (frame(); as f) {
+  <div class="controls">
+    <button
+      class="controls__play"
+      type="button"
+      [attr.aria-label]="playing() ? 'Pause radar animation' : 'Play the last 2 hours of radar'"
+      (click)="togglePlay()"
+    >
+      <mat-icon aria-hidden="true">{{ playing() ? 'pause' : 'play_arrow' }}</mat-icon>
+    </button>
+    <input
+      class="controls__slider"
+      type="range"
+      min="0"
+      [max]="frames().length - 1"
+      [value]="frameIndex()"
+      aria-label="Radar time"
+      [attr.aria-valuetext]="(f.time | date: 'HH:mm') + (isLatest() ? ', latest' : '')"
+      (input)="scrub($event)"
+    />
+    <span class="controls__time">
+      {{ f.time | date: 'HH:mm' }}
+      @if (isLatest()) {
+        <span class="controls__latest">latest</span>
+      }
+    </span>
+  </div>
+} @else {
+  <p class="caption">
+    @if (radarError()) {
+      Radar isn't available right now
+    } @else {
+      Loading radar…
+    }
+  </p>
+}

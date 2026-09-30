@@ -72,7 +72,14 @@ export class WeatherService {
           ].join(','),
           minutely_15: 'precipitation',
           forecast_minutely_15: 8,
-          hourly: 'temperature_2m,weather_code,is_day,precipitation_probability',
+          hourly: [
+            'temperature_2m',
+            'weather_code',
+            'is_day',
+            'precipitation_probability',
+            'uv_index',
+            'wind_speed_10m',
+          ].join(','),
           daily: [
             'weather_code',
             'temperature_2m_max',
@@ -94,8 +101,8 @@ export class WeatherService {
   }
 
   /**
-   * Yesterday's and today's highs for `place`, always in °C so a unit switch doesn't refetch
-   * (the difference converts on its own).
+   * Yesterday's and today's highs and sun times for `place`. Always in °C so a unit switch
+   * doesn't refetch (the difference converts on its own).
    */
   yesterday(place: Signal<Place | undefined>) {
     return httpResource<YesterdayResponse>(() => {
@@ -108,7 +115,7 @@ export class WeatherService {
         params: {
           latitude: p.latitude,
           longitude: p.longitude,
-          daily: 'temperature_2m_max',
+          daily: 'temperature_2m_max,sunrise,sunset',
           past_days: 1,
           forecast_days: 1,
           timezone: 'auto',

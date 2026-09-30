@@ -244,6 +244,20 @@ export function describeUvIndex(uv: number): string {
   return 'Extreme';
 }
 
+/** Rough position of the sun, used to theme the page background. */
+export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
+
+/** How long either side of sunrise/sunset counts as dawn/dusk. */
+const TWILIGHT_MS = 45 * 60 * 1000;
+
+export function dayPhase(now: Date, sunrise: Date, sunset: Date): DayPhase {
+  const t = now.getTime();
+  if (Math.abs(t - sunrise.getTime()) <= TWILIGHT_MS) return 'dawn';
+  if (Math.abs(t - sunset.getTime()) <= TWILIGHT_MS) return 'dusk';
+  if (t > sunrise.getTime() && t < sunset.getTime()) return 'day';
+  return 'night';
+}
+
 /**
  * Parses Open-Meteo's local ISO strings ("2026-09-30" or "2026-09-30T15:30") as
  * wall-clock time, so dates render in the place's own timezone rather than shifting.

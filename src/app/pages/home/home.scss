@@ -59,6 +59,31 @@ ol {
   align-items: center;
   justify-content: center;
   background: var(--mat-sys-surface-container-high);
+
+  // Panel and card surfaces, tinted towards the sky by `--sky-tint`.
+  --sky-tint: var(--mat-sys-surface-container-low);
+  --panel-bg: color-mix(in srgb, var(--mat-sys-surface-container-low) 85%, var(--sky-tint));
+  --card-bg: color-mix(in srgb, var(--mat-sys-surface-container-lowest) 90%, var(--sky-tint));
+
+  // Sky colours for the time of day at the place (see `DayPhase`).
+  &--dawn {
+    --sky-tint: #f6a5c0;
+    background: linear-gradient(160deg, #fbc2a4 0%, #f6a5c0 45%, #8fa6e8 100%);
+  }
+  &--day {
+    --sky-tint: #8ecdf7;
+    background: linear-gradient(160deg, #8ecdf7 0%, #bfe3fb 55%, #eaf6ff 100%);
+  }
+  &--dusk {
+    --sky-tint: #b0508c;
+    background: linear-gradient(160deg, #3f3d8f 0%, #b0508c 55%, #f7a35c 100%);
+  }
+  &--night {
+    // Switch the Material palette to dark so text stays readable on the dark panels.
+    color-scheme: dark;
+    --sky-tint: #3a3f7a;
+    background: linear-gradient(160deg, #0b1026 0%, #1c2350 55%, #3a3f7a 100%);
+  }
 }
 
 .dashboard {
@@ -68,7 +93,7 @@ ol {
   max-width: 1200px;
   overflow: hidden;
   border-radius: 40px;
-  background: var(--mat-sys-surface-container-low);
+  background: var(--panel-bg);
   box-shadow: 0 24px 60px rgb(0 0 0 / 0.08);
 }
 
@@ -98,7 +123,7 @@ ol {
   flex-direction: column;
   gap: 24px;
   padding: 32px;
-  background: var(--mat-sys-surface-container-lowest);
+  background: var(--card-bg);
 }
 
 .current {
@@ -251,7 +276,7 @@ ol {
   height: 40px;
   border: 0;
   border-radius: 50%;
-  background: var(--mat-sys-surface-container-lowest);
+  background: var(--card-bg);
   color: var(--mat-sys-on-surface);
   font: var(--mat-sys-label-large);
   cursor: pointer;
@@ -283,7 +308,7 @@ ol {
   gap: 12px;
   padding: 16px 8px;
   border-radius: 16px;
-  background: var(--mat-sys-surface-container-lowest);
+  background: var(--card-bg);
   font: var(--mat-sys-body-medium);
 }
 
@@ -315,7 +340,7 @@ ol {
   padding: 20px 24px;
   box-sizing: border-box;
   border-radius: 16px;
-  background: var(--mat-sys-surface-container-lowest);
+  background: var(--card-bg);
 
   &--meter {
     padding-right: 72px;

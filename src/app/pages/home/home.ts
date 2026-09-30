@@ -4,6 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import {
   compassDirection,
+  dayPhase,
   describeAirQuality,
   describeHumidity,
   describeUvIndex,
@@ -78,6 +79,19 @@ export class Home implements OnInit {
       condition: describeWeather(current.weather_code, current.is_day === 1),
       rainChance: daily.precipitation_probability_max[0],
     };
+  });
+
+  /** Dawn/day/dusk/night at the place, for the page background. Undefined while loading. */
+  protected readonly phase = computed(() => {
+    if (!this.forecast.hasValue()) {
+      return undefined;
+    }
+    const { current, daily } = this.forecast.value();
+    return dayPhase(
+      parseLocalTime(current.time),
+      parseLocalTime(daily.sunrise[0]),
+      parseLocalTime(daily.sunset[0]),
+    );
   });
 
   protected readonly week = computed(() => {

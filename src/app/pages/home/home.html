@@ -1,4 +1,4 @@
-<main class="page">
+<main class="page" [class]="phase() ? 'page--' + phase() : ''">
   <div class="dashboard">
     <aside class="sidebar">
       <app-place-search

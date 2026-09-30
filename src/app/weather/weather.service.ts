@@ -1,5 +1,6 @@
 import { httpResource } from '@angular/common/http';
 import { Injectable, Signal } from '@angular/core';
+import { environment } from '../../environments/environment';
 import {
   AirQualityResponse,
   ForecastResponse,
@@ -9,10 +10,11 @@ import {
   TemperatureUnit,
 } from './weather.models';
 
-export const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
-export const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
-export const SEARCH_URL = 'https://photon.komoot.io/api/';
-export const REVERSE_GEOCODE_URL = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
+// Endpoints come from `.env` via the generated environment file (see scripts/set-env.mjs).
+export const FORECAST_URL = environment.forecastUrl;
+export const AIR_QUALITY_URL = environment.airQualityUrl;
+export const SEARCH_URL = environment.searchUrl;
+export const REVERSE_GEOCODE_URL = environment.reverseGeocodeUrl;
 
 /** OpenStreetMap features that clutter place search (bus stops, footpaths, platforms…). */
 const SEARCH_EXCLUDED_TAGS = [

@@ -1,16 +1,21 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { PreferencesService } from '../../../services/preferences.service';
 import {
   AirQualityResponse,
   compassDirection,
   describeAirQuality,
+  describeCloudCover,
   describeDayLength,
+  describeDewPoint,
   describeHumidity,
+  describePressure,
   describeUvIndex,
   describeVisibility,
   ForecastResponse,
   minutesBetween,
+  moonPath,
   moonPhase,
   parseAbsoluteTime,
   parseLocalTime,
@@ -34,20 +39,9 @@ const HOUR_MS = 3_600_000;
 const MOON_R = 20;
 
 /**
- * SVG path for the lit part of the moon at `cycle` (0 new → 0.5 full → 1 new): the outer edge
- * on the lit side, then back along the terminator, an ellipse that narrows towards the quarters.
+ * "Today's Highlights" cards: UV, wind, sun, humidity, visibility, air quality, dew point,
+ * pressure, cloud cover and the sky.
  */
-function moonPath(cycle: number): string {
-  const r = MOON_R;
-  const waxing = cycle < 0.5;
-  const rx = Math.abs(Math.cos(2 * Math.PI * cycle)) * r;
-  const outerSweep = waxing ? 1 : 0;
-  // Crescents bulge towards the lit edge, gibbous moons away from it.
-  const terminatorSweep = waxing ? Number(cycle >= 0.25) : Number(cycle > 0.75);
-  return `M ${r} 0 A ${r} ${r} 0 0 ${outerSweep} ${r} ${2 * r} A ${rx} ${r} 0 0 ${terminatorSweep} ${r} 0 Z`;
-}
-
-/** "Today's Highlights" cards: UV, wind, sun, humidity, visibility and air quality. */
 @Component({
   selector: 'app-highlights',
   imports: [DatePipe, DecimalPipe, MatIconModule],
@@ -66,6 +60,7 @@ export class Highlights {
 
   readonly windUnitCycled = output<void>();
 
+  protected readonly timeFormat = inject(PreferencesService).timeFormat;
   protected readonly uvTicks = UV_TICKS;
   protected readonly moonSize = MOON_R * 2;
 
@@ -74,7 +69,8 @@ export class Highlights {
     if (!forecast) {
       return undefined;
     }
-    const { current, daily } = forecast;
+    const { current, current_units, daily } = forecast;
+    const dewPoint = current.dew_point_2m;
     const uv = Math.max(0, current.uv_index);
     const visibilityKm = current.visibility / 1000;
     return {
@@ -86,6 +82,7 @@ export class Highlights {
       wind: {
         speed: current.wind_speed_10m,
         direction: compassDirection(current.wind_direction_10m),
+        gusts: current.wind_gusts_10m,
         // Wind direction is where it blows *from*; point the arrow where it's going.
         arrowRotation: current.wind_direction_10m + 180,
       },
@@ -96,6 +93,15 @@ export class Highlights {
         label: describeHumidity(current.relative_humidity_2m),
       },
       visibility: { value: visibilityKm, label: describeVisibility(visibilityKm) },
+      dewPoint: {
+        value: dewPoint,
+        // The comfort bands are in °C.
+        label: describeDewPoint(
+          current_units.temperature_2m === '°F' ? (dewPoint - 32) / 1.8 : dewPoint,
+        ),
+      },
+      pressure: { value: current.pressure_msl, label: describePressure(current.pressure_msl) },
+      cloud: { value: current.cloud_cover, label: describeCloudCover(current.cloud_cover) },
     };
   });
 
@@ -119,7 +125,7 @@ export class Highlights {
       ),
       goldenMorning: { start: sunrise, end: new Date(sunrise.getTime() + HOUR_MS) },
       goldenEvening: { start: new Date(sunset.getTime() - HOUR_MS), end: sunset },
-      moon: { ...moon, path: moonPath(moon.cycle) },
+      moon: { ...moon, path: moonPath(moon.cycle, MOON_R) },
     };
   });
 

@@ -224,6 +224,10 @@ ul {
   &--aqi::after {
     background: var(--tone-storm);
   }
+
+  &--cloud::after {
+    background: var(--tone-cloud);
+  }
 }
 
 // Full-width card under the others.

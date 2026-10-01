@@ -1,7 +1,12 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, input, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { describeUvIndex, WeatherCondition } from '../../../models/weather.models';
+import {
+  describeUvIndex,
+  formatPrecipitation,
+  WeatherCondition,
+} from '../../../models/weather.models';
+import { PreferencesService } from '../../../services/preferences.service';
 
 export interface DayDetailsData {
   label: Date;
@@ -12,6 +17,7 @@ export interface DayDetailsData {
   /** Millimetres. */
   rainTotal: number;
   windMax: number;
+  gustMax: number;
   uvMax: number;
   sunrise: Date;
   sunset: Date;
@@ -19,7 +25,7 @@ export interface DayDetailsData {
   hours: { key: string; label: Date; condition: WeatherCondition; temperature: number }[];
 }
 
-/** Expanded view of one Week-tab day: hourly steps plus the day's totals. */
+/** Expanded view of one forecast day: hourly steps plus the day's totals. */
 @Component({
   selector: 'app-day-details',
   imports: [DatePipe, DecimalPipe, MatIconModule],
@@ -28,10 +34,16 @@ export interface DayDetailsData {
   host: { '(document:keydown.escape)': 'closed.emit()' },
 })
 export class DayDetails {
+  private readonly preferences = inject(PreferencesService);
+
   readonly day = input.required<DayDetailsData>();
   readonly windUnit = input('km/h');
 
   readonly closed = output<void>();
 
+  protected readonly timeFormat = this.preferences.timeFormat;
   protected readonly describeUv = describeUvIndex;
+  protected readonly rainTotal = computed(() =>
+    formatPrecipitation(this.day().rainTotal, this.preferences.prefs().precipUnit),
+  );
 }

@@ -1,0 +1,56 @@
+:host {
+  display: block;
+}
+
+// The menu opens in an overlay outside the page, so it can't use the page's sky-tinted
+// `--card-bg`; it takes the plain Material surface instead.
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+  margin-top: 8px;
+  padding: 12px 8px;
+  border-radius: 16px;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.16);
+}
+
+.settings__label {
+  margin: 0;
+  padding: 4px 12px;
+  font: var(--mat-sys-label-medium);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.settings__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  font: var(--mat-sys-body-medium);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+  }
+
+  mat-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
+
+  &[aria-checked='true'] mat-icon {
+    color: var(--mat-sys-primary);
+  }
+}

@@ -33,13 +33,16 @@ const SEARCH_EXCLUDED_TAGS = [
   '!amenity:vending_machine',
 ];
 
+/** How far ahead the forecast goes; the Week tab shows the first 7 of these. */
+export const FORECAST_DAYS = 14;
+
 /** Shown when the browser can't (or won't) share the user's location. */
 export const DEFAULT_PLACE: Place = { name: 'New York', latitude: 40.7128, longitude: -74.006 };
 
 @Injectable({ providedIn: 'root' })
 export class WeatherService {
   /**
-   * Current conditions, hourly and daily forecasts for the next 7 days for `place`, refetched
+   * Current conditions, hourly and daily forecasts for the next 14 days for `place`, refetched
    * whenever `place`, `unit` or `windUnit` changes.
    * Must be called in an injection context (e.g. a component field initializer).
    */
@@ -69,16 +72,22 @@ export class WeatherService {
             'visibility',
             'uv_index',
             'precipitation',
+            'wind_gusts_10m',
+            'dew_point_2m',
+            'pressure_msl',
+            'cloud_cover',
           ].join(','),
           minutely_15: 'precipitation',
           forecast_minutely_15: 8,
           hourly: [
             'temperature_2m',
+            'apparent_temperature',
             'weather_code',
             'is_day',
             'precipitation_probability',
             'uv_index',
             'wind_speed_10m',
+            'wind_gusts_10m',
           ].join(','),
           daily: [
             'weather_code',
@@ -87,11 +96,12 @@ export class WeatherService {
             'precipitation_probability_max',
             'precipitation_sum',
             'wind_speed_10m_max',
+            'wind_gusts_10m_max',
             'uv_index_max',
             'sunrise',
             'sunset',
           ].join(','),
-          forecast_days: 7,
+          forecast_days: FORECAST_DAYS,
           temperature_unit: unit(),
           wind_speed_unit: windUnit(),
           timezone: 'auto',

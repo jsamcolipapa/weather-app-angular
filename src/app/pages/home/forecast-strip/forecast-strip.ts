@@ -1,8 +1,8 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { WeatherCondition } from '../../../models/weather.models';
-import { ForecastView } from '../../../services/preferences.service';
+import { ForecastView, PreferencesService } from '../../../services/preferences.service';
 
 export interface ForecastDay {
   key: string;
@@ -36,8 +36,13 @@ export class ForecastStrip {
 
   readonly daySelected = output<number>();
 
+  protected readonly timeFormat = inject(PreferencesService).timeFormat;
+
+  /** Weekday names repeat over 14 days, so that tab adds the day of the month. */
+  protected readonly dayFormat = computed(() => (this.view() === 'fortnight' ? 'EEE d' : 'EEE'));
+
   /** Placeholder cards while loading: one per day, or one per 3 hours. */
   protected readonly skeletonSlots = computed(() =>
-    Array.from({ length: this.view() === 'week' ? 7 : 8 }),
+    Array.from({ length: { today: 8, week: 7, fortnight: 14 }[this.view()] }),
   );
 }

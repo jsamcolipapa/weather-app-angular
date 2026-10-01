@@ -5,6 +5,13 @@ export const WIND_UNITS = ['kmh', 'mph', 'ms'] as const;
 export type WindUnit = (typeof WIND_UNITS)[number];
 export const WIND_UNIT_LABELS: Record<WindUnit, string> = { kmh: 'km/h', mph: 'mph', ms: 'm/s' };
 
+export type PrecipUnit = 'mm' | 'inch';
+
+/** A rain amount in the chosen unit, e.g. "4.2 mm" or "0.17 in". Forecasts always come in mm. */
+export function formatPrecipitation(mm: number, unit: PrecipUnit): string {
+  return unit === 'inch' ? `${Number((mm / 25.4).toFixed(2))} in` : `${Number(mm.toFixed(1))} mm`;
+}
+
 /** One-line summary for sharing, e.g. "22°C, partly cloudy in Quezon City". */
 export function shareText(place: string, temperature: number, unit: string, label: string): string {
   return `${Math.round(temperature)}${unit}, ${label.toLowerCase()} in ${place}`;
@@ -15,6 +22,40 @@ export interface Place {
   name?: string;
   latitude: number;
   longitude: number;
+}
+
+/** Query params that reopen `place`, e.g. `lat=14.676&lon=121.0437&name=Quezon+City`. */
+export function placeToParams(place: Place, name = place.name): URLSearchParams {
+  // 4 decimals is about 10 m, plenty for a forecast.
+  const params = new URLSearchParams({
+    lat: String(Number(place.latitude.toFixed(4))),
+    lon: String(Number(place.longitude.toFixed(4))),
+  });
+  if (name) {
+    params.set('name', name);
+  }
+  return params;
+}
+
+/** The place a shared link points at; undefined when its params are missing or invalid. */
+export function placeFromParams(params: URLSearchParams): Place | undefined {
+  const lat = params.get('lat')?.trim();
+  const lon = params.get('lon')?.trim();
+  if (!lat || !lon) {
+    return undefined;
+  }
+  const latitude = Number(lat);
+  const longitude = Number(lon);
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  ) {
+    return undefined;
+  }
+  const name = params.get('name')?.trim();
+  return { ...(name && { name }), latitude, longitude };
 }
 
 /** Subset of the BigDataCloud reverse-geocode response we use. */
@@ -54,6 +95,14 @@ export interface ForecastResponse {
     uv_index: number;
     /** Millimetres in the preceding 15 minutes. */
     precipitation: number;
+    /** Same unit as `wind_speed_10m`. */
+    wind_gusts_10m: number;
+    /** Same unit as `temperature_2m`. */
+    dew_point_2m: number;
+    /** Sea-level pressure in hPa. */
+    pressure_msl: number;
+    /** Percent of the sky covered. */
+    cloud_cover: number;
   };
   /** Next 2 hours in 15-minute steps; each value covers the 15 minutes before its time. */
   minutely_15: {
@@ -61,15 +110,17 @@ export interface ForecastResponse {
     /** Millimetres per step. */
     precipitation: number[];
   };
-  /** Every hour of the 7 forecast days, from midnight today. */
+  /** Every hour of the forecast days, from midnight today. */
   hourly: {
     time: string[];
     temperature_2m: number[];
+    apparent_temperature: number[];
     weather_code: number[];
     is_day: (0 | 1)[];
     precipitation_probability: (number | null)[];
     uv_index: number[];
     wind_speed_10m: number[];
+    wind_gusts_10m: number[];
   };
   daily: {
     time: string[];
@@ -80,6 +131,7 @@ export interface ForecastResponse {
     /** Millimetres. */
     precipitation_sum: number[];
     wind_speed_10m_max: number[];
+    wind_gusts_10m_max: number[];
     uv_index_max: number[];
     sunrise: string[];
     sunset: string[];
@@ -277,6 +329,39 @@ export function moonPhase(date: Date): { cycle: number; illumination: number; na
   };
 }
 
+/**
+ * SVG path for the lit part of a moon of `radius` at `cycle` (0 new → 0.5 full → 1 new), in a
+ * box twice the radius wide: the outer edge on the lit side, then back along the terminator, an
+ * ellipse that narrows towards the quarters.
+ */
+export function moonPath(cycle: number, radius: number): string {
+  const r = radius;
+  const waxing = cycle < 0.5;
+  const rx = Math.abs(Math.cos(2 * Math.PI * cycle)) * r;
+  const outerSweep = waxing ? 1 : 0;
+  // Crescents bulge towards the lit edge, gibbous moons away from it.
+  const terminatorSweep = waxing ? Number(cycle >= 0.25) : Number(cycle > 0.75);
+  return `M ${r} 0 A ${r} ${r} 0 0 ${outerSweep} ${r} ${2 * r} A ${rx} ${r} 0 0 ${terminatorSweep} ${r} 0 Z`;
+}
+
+/** Forecasts refresh every 15 minutes, so anything older than this is out of date. */
+const STALE_DATA_MS = 45 * 60_000;
+
+/**
+ * A note for when the forecast on screen isn't live, e.g. "Updated 2 h ago" or
+ * "Offline · updated 3 days ago". Undefined while it's fresh and the device is online.
+ */
+export function describeDataAge(ageMs: number, online: boolean): string | undefined {
+  if (ageMs < STALE_DATA_MS) {
+    return online ? undefined : 'Offline';
+  }
+  const minutes = Math.floor(ageMs / 60_000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  const ago = hours < 1 ? `${minutes} min ago` : days < 2 ? `${hours} h ago` : `${days} days ago`;
+  return online ? `Updated ${ago}` : `Offline · updated ${ago}`;
+}
+
 /** e.g. "3° warmer than yesterday". Differences under 1° count as the same. */
 export function compareToYesterday(todayHigh: number, yesterdayHigh: number): string {
   const diff = Math.round(todayHigh - yesterdayHigh);
@@ -439,6 +524,29 @@ export function describeHumidity(percent: number): string {
   return 'Humid';
 }
 
+/** How the air feels at a dew point in °C; a better guide to mugginess than humidity. */
+export function describeDewPoint(celsius: number): string {
+  if (celsius < 10) return 'Dry';
+  if (celsius < 16) return 'Comfortable';
+  if (celsius < 21) return 'Sticky';
+  return 'Muggy';
+}
+
+/** Sea-level pressure in hPa. */
+export function describePressure(hPa: number): string {
+  if (hPa < 1000) return 'Low';
+  if (hPa <= 1020) return 'Normal';
+  return 'High';
+}
+
+/** Cloud cover in percent. */
+export function describeCloudCover(percent: number): string {
+  if (percent < 20) return 'Clear';
+  if (percent < 50) return 'Partly cloudy';
+  if (percent < 88) return 'Mostly cloudy';
+  return 'Overcast';
+}
+
 /** Visibility in kilometres. */
 export function describeVisibility(km: number): string {
   if (km >= 10) return 'Clear';
@@ -465,6 +573,95 @@ export function describeUvIndex(uv: number): string {
   return 'Extreme';
 }
 
+/** What the app can warn about; `rain` is the within-the-hour heads-up, the rest look a day ahead. */
+export const ALERT_IDS = ['rain', 'uv', 'wind', 'frost', 'heat', 'air'] as const;
+export type AlertId = (typeof ALERT_IDS)[number];
+export const ALERT_LABELS: Record<AlertId, string> = {
+  rain: 'Rain starting',
+  uv: 'Very high UV',
+  wind: 'Strong gusts',
+  frost: 'Frost',
+  heat: 'Extreme heat',
+  air: 'Unhealthy air',
+};
+
+export interface WeatherAlert {
+  id: AlertId;
+  /** Material Symbols icon name. */
+  icon: string;
+  tone: WeatherTone;
+  message: string;
+}
+
+/** One upcoming hour in metric units, for `weatherAlerts`. */
+export interface AlertHour {
+  /** °C. */
+  temperature: number;
+  /** °C. */
+  feelsLike: number;
+  uv: number;
+  gustKmh: number;
+}
+
+// Levels at which conditions are worth a warning.
+const ALERT_UV = 8;
+const ALERT_GUST_KMH = 60;
+const ALERT_FROST_C = 0;
+const ALERT_HEAT_C = 35;
+const ALERT_AQI = 151;
+
+/**
+ * Warnings about the hours ahead (normally the next 24) and the current air quality. Messages
+ * leave out temperatures and speeds so they read the same whatever units are chosen.
+ */
+export function weatherAlerts(hours: AlertHour[], aqi?: number | null): WeatherAlert[] {
+  const alerts: WeatherAlert[] = [];
+  if (hours.length) {
+    const uv = Math.max(...hours.map((h) => h.uv));
+    if (uv >= ALERT_UV) {
+      alerts.push({
+        id: 'uv',
+        icon: 'sunny',
+        tone: 'sun',
+        message: `${describeUvIndex(uv)} UV ahead, up to ${Math.round(uv)}`,
+      });
+    }
+    if (Math.max(...hours.map((h) => h.gustKmh)) >= ALERT_GUST_KMH) {
+      alerts.push({
+        id: 'wind',
+        icon: 'air',
+        tone: 'cloud',
+        message: 'Strong wind gusts in the next 24 hours',
+      });
+    }
+    if (Math.min(...hours.map((h) => h.temperature)) <= ALERT_FROST_C) {
+      alerts.push({
+        id: 'frost',
+        icon: 'ac_unit',
+        tone: 'snow',
+        message: 'Frost in the next 24 hours',
+      });
+    }
+    if (Math.max(...hours.map((h) => h.feelsLike)) >= ALERT_HEAT_C) {
+      alerts.push({
+        id: 'heat',
+        icon: 'thermostat',
+        tone: 'sun',
+        message: 'Extreme heat in the next 24 hours',
+      });
+    }
+  }
+  if (aqi != null && aqi >= ALERT_AQI) {
+    alerts.push({
+      id: 'air',
+      icon: 'masks',
+      tone: 'storm',
+      message: `${describeAirQuality(aqi)} air right now (AQI ${Math.round(aqi)})`,
+    });
+  }
+  return alerts;
+}
+
 /** Rough position of the sun, used to theme the page background. */
 export type DayPhase = 'dawn' | 'day' | 'dusk' | 'night';
 
@@ -477,6 +674,27 @@ export function dayPhase(now: Date, sunrise: Date, sunset: Date): DayPhase {
   if (Math.abs(t - sunset.getTime()) <= TWILIGHT_MS) return 'dusk';
   if (t > sunrise.getTime() && t < sunset.getTime()) return 'day';
   return 'night';
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How far the sun is through the daylight, or (when `phase` is night) the moon through the
+ * night: 0 as it rises, 0.5 at its highest, 1 as it sets. `sunrise` and `sunset` are today's;
+ * the night is taken to be the rest of the 24 hours.
+ */
+export function skyProgress(now: Date, sunrise: Date, sunset: Date, phase: DayPhase): number {
+  const t = now.getTime();
+  const daylight = sunset.getTime() - sunrise.getTime();
+  const clamp = (value: number) => Math.min(1, Math.max(0, value));
+  if (phase !== 'night') {
+    return clamp((t - sunrise.getTime()) / daylight);
+  }
+  const night = DAY_MS - daylight;
+  // After sunset count up from it; before sunrise count back from the end of the night.
+  return clamp(
+    t >= sunset.getTime() ? (t - sunset.getTime()) / night : 1 - (sunrise.getTime() - t) / night,
+  );
 }
 
 /** Less than this many millimetres in 15 minutes counts as dry. */

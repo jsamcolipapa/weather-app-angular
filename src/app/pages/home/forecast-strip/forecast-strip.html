@@ -7,7 +7,7 @@
         <span class="skeleton skeleton--text" style="width: 48px"></span>
       </li>
     }
-  } @else if (view() === 'week') {
+  } @else if (view() !== 'today') {
     @for (day of days(); track day.key; let i = $index) {
       <li>
         <button
@@ -17,7 +17,7 @@
           [attr.aria-expanded]="selectedDay() === i"
           (click)="daySelected.emit(i)"
         >
-          <span class="forecast__label">{{ day.label | date: 'EEE' }}</span>
+          <span class="forecast__label">{{ day.label | date: dayFormat() }}</span>
           <mat-icon
             class="forecast__icon filled"
             [class]="'tone-' + day.condition.tone"
@@ -35,7 +35,7 @@
   } @else {
     @for (hour of hours(); track hour.key) {
       <li class="forecast__item">
-        <span class="forecast__label">{{ hour.label | date: 'HH:mm' }}</span>
+        <span class="forecast__label">{{ hour.label | date: timeFormat() }}</span>
         <mat-icon
           class="forecast__icon filled"
           [class]="'tone-' + hour.condition.tone"

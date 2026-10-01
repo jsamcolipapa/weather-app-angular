@@ -17,11 +17,11 @@
       [max]="frames().length - 1"
       [value]="frameIndex()"
       aria-label="Radar time"
-      [attr.aria-valuetext]="(f.time | date: 'HH:mm') + (isLatest() ? ', latest' : '')"
+      [attr.aria-valuetext]="(f.time | date: timeFormat()) + (isLatest() ? ', latest' : '')"
       (input)="scrub($event)"
     />
     <span class="controls__time">
-      {{ f.time | date: 'HH:mm' }}
+      {{ f.time | date: timeFormat() }}
       @if (isLatest()) {
         <span class="controls__latest">latest</span>
       }

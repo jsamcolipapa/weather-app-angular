@@ -1,3 +1,53 @@
+@if (phase()) {
+  <div class="scene">
+    @if (body(); as b) {
+      <div
+        class="body"
+        [class]="'body--' + b.kind + ' body--' + b.side"
+        [style.--height]="b.height"
+      >
+        @if (b.moonPath; as path) {
+          <svg class="moon" [attr.viewBox]="'0 0 ' + moonSize + ' ' + moonSize">
+            <circle
+              class="moon__disc"
+              [attr.cx]="moonSize / 2"
+              [attr.cy]="moonSize / 2"
+              [attr.r]="moonSize / 2"
+            />
+            <path class="moon__lit" [attr.d]="path" />
+          </svg>
+        }
+      </div>
+    }
+
+    @if (effect() === 'stars') {
+      <span class="shooting-star"></span>
+    }
+
+    @for (c of clouds(); track $index) {
+      <span
+        class="cloud"
+        [class]="'cloud--' + c.side"
+        [style.--across]="c.across"
+        [style.--y]="c.y + '%'"
+        [style.--scale]="c.scale"
+        [style.--delay]="c.delay + 's'"
+      ></span>
+    }
+
+    <svg class="hills" viewBox="0 0 1200 200" preserveAspectRatio="none">
+      <path
+        class="hills__far"
+        d="M0 120 C 150 60 300 60 450 110 S 750 170 900 100 S 1120 60 1200 100 V200 H0 Z"
+      />
+      <path
+        class="hills__near"
+        d="M0 160 C 120 110 260 120 400 150 S 680 190 820 140 S 1080 120 1200 150 V200 H0 Z"
+      />
+    </svg>
+  </div>
+}
+
 @if (effect(); as effect) {
   <div class="backdrop" [class]="'backdrop--' + effect">
     @for (p of particles(); track $index) {

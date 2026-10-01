@@ -122,44 +122,13 @@ h2 {
   gap: 16px;
 }
 
-.alerts-toggle {
-  display: grid;
-  place-items: center;
-
-  mat-icon {
-    width: 20px;
-    height: 20px;
-    font-size: 20px;
-  }
-}
-
-.units {
+.banners {
   display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.units__unit {
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--card-bg);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-label-large);
-  cursor: pointer;
-
-  &--active {
-    background: var(--mat-sys-on-surface);
-    color: var(--mat-sys-surface);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--mat-sys-primary);
-    outline-offset: 2px;
-  }
-}
-
-.rain-banner {
+.banner {
   display: flex;
   align-items: center;
   gap: 10px;

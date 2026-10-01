@@ -7,15 +7,23 @@ A weather dashboard built with Angular 22 and Angular Material. Live at
 
 - **Now:** current conditions, feels-like, comparison with yesterday, what to wear and the best
   2-hour window to be outside.
-- **Forecast:** next 24 hours (with a temperature and rain-chance chart) or 7 days; click a day
-  for its hourly breakdown, rain total, wind and UV.
-- **Highlights:** UV, wind (km/h, mph or m/s), sunrise and sunset, humidity, visibility, air
-  quality with pollutants, day length, golden hour and moon phase.
-- **Rain:** a heads-up when rain starts or stops within the hour, optional browser notifications,
-  and an animated radar map.
-- **Places:** search, device location, saved places with live temperatures, and sharing.
-- **Look:** the sky, panels and an animated backdrop follow the time of day and the weather.
-- **App:** installable, works offline with the last forecast, remembers your settings.
+- **Forecast:** next 24 hours (with a chart of temperature, wind or UV over the chance of rain),
+  7 days or 14 days; click a day for its hourly breakdown, rain total, wind, gusts and UV.
+- **Highlights:** UV, wind and gusts (km/h, mph or m/s), sunrise and sunset, humidity, visibility,
+  air quality with pollutants, dew point, pressure, cloud cover, day length, golden hour and moon
+  phase.
+- **Alerts:** a heads-up when rain starts or stops within the hour, warnings for very high UV,
+  strong gusts, frost, extreme heat and unhealthy air in the next 24 hours, and optional browser
+  notifications for each (sent while the app is open in a background tab).
+- **Rain radar:** an animated map of the last two hours.
+- **Places:** search, device location, saved places with live temperatures, and sharing a link
+  that opens the same place (`?lat=…&lon=…&name=…`).
+- **Settings:** °C/°F, wind unit, 12- or 24-hour clock, rain in millimetres or inches.
+- **Look:** the sky, panels and an animated backdrop follow the time of day and the weather. On
+  wide screens the space around the dashboard shows the sun or the moon in its phase, clouds
+  matching the cloud cover, and a horizon.
+- **App:** installable, works offline with the last forecast (and says how old it is), remembers
+  your settings.
 
 ## Getting started
 
@@ -42,11 +50,11 @@ build output, e.g. `npx http-server dist/weather-app-angular/browser`.
 
 ```
 src/app/
-├── models/     # API response types and pure helpers (formatting, rain, outfit, moon…)
+├── models/     # API response types and pure helpers (formatting, rain, alerts, outfit, moon…)
 ├── services/   # WeatherService (API calls), PreferencesService (localStorage), notify
 └── pages/home/ # Home page and its sections: current-conditions, forecast-strip,
                 # highlights, hourly-chart, day-details, rain-map, saved-places,
-                # place-search, weather-backdrop
+                # place-search, settings-menu, weather-backdrop
 ```
 
 ## Deployment

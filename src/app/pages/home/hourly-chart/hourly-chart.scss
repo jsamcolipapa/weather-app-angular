@@ -5,6 +5,33 @@
   background: var(--card-bg);
 }
 
+.metrics {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.metrics__option {
+  padding: 4px 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 999px;
+  background: none;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-medium);
+  cursor: pointer;
+
+  &--active {
+    border-color: var(--mat-sys-on-surface);
+    background: var(--mat-sys-on-surface);
+    color: var(--mat-sys-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+}
+
 .chart {
   display: block;
   width: 100%;

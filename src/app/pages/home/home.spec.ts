@@ -18,16 +18,11 @@ import {
 import { PREFERENCES_KEY } from '../../services/preferences.service';
 import { Home } from './home';
 
-const days = [
-  '2026-09-30',
-  '2026-10-01',
-  '2026-10-02',
-  '2026-10-03',
-  '2026-10-04',
-  '2026-10-05',
-  '2026-10-06',
-];
-// Every hour of the 7 days, as Open-Meteo returns without `forecast_hours`.
+// 14 days from Wednesday 2026-09-30.
+const days = Array.from({ length: 14 }, (_, i) =>
+  new Date(Date.UTC(2026, 8, 30 + i)).toISOString().slice(0, 10),
+);
+// Every hour of those days, as Open-Meteo returns without `forecast_hours`.
 const hours = days.flatMap((d) =>
   Array.from({ length: 24 }, (_, h) => `${d}T${String(h).padStart(2, '0')}:00`),
 );
@@ -50,6 +45,10 @@ const response: ForecastResponse = {
     visibility: 5200,
     uv_index: 5.2,
     precipitation: 0,
+    wind_gusts_10m: 14.4,
+    dew_point_2m: 12.3,
+    pressure_msl: 1013.4,
+    cloud_cover: 40,
   },
   minutely_15: {
     time: quarters,
@@ -58,6 +57,7 @@ const response: ForecastResponse = {
   hourly: {
     time: hours,
     temperature_2m: hours.map(() => 18),
+    apparent_temperature: hours.map(() => 17),
     weather_code: hours.map(() => 0),
     is_day: hours.map(() => 1),
     precipitation_probability: hours.map(() => 20),
@@ -66,6 +66,7 @@ const response: ForecastResponse = {
       Number(h.slice(11, 13)) >= 10 && Number(h.slice(11, 13)) <= 16 ? 8 : 0,
     ),
     wind_speed_10m: hours.map(() => 10),
+    wind_gusts_10m: hours.map(() => 22),
   },
   daily: {
     time: days,
@@ -75,6 +76,7 @@ const response: ForecastResponse = {
     precipitation_probability_max: days.map(() => 30),
     precipitation_sum: days.map(() => 4.2),
     wind_speed_10m_max: days.map(() => 18),
+    wind_gusts_10m_max: days.map(() => 35),
     uv_index_max: days.map(() => 6),
     sunrise: days.map((d) => `${d}T06:35`),
     sunset: days.map((d) => `${d}T17:42`),
@@ -113,6 +115,8 @@ describe('Home', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    // The page keeps its place in the URL; start each test without one.
+    history.replaceState(null, '', location.pathname);
     TestBed.configureTestingModule({
       imports: [Home],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -147,7 +151,7 @@ describe('Home', () => {
 
     expect(el.querySelector('.current')?.getAttribute('aria-busy')).toBe('true');
     expect(el.querySelectorAll('.forecast__item .skeleton--circle').length).toBe(7);
-    expect(el.querySelectorAll('.card .card__value-skeleton').length).toBe(4);
+    expect(el.querySelectorAll('.card .card__value-skeleton').length).toBe(7);
     expect(el.querySelector('.current__temp')).toBeNull();
 
     req.flush(response);
@@ -197,12 +201,67 @@ describe('Home', () => {
         ?.textContent?.replace(/\s+/g, ' ');
     expect(card('UV Index')).toContain('Moderate');
     expect(card('Wind Status')).toContain('7.7 km/h');
-    expect(card('Wind Status')).toContain('WSW');
-    expect(card('Sunrise & Sunset')).toContain('6:35 AM');
-    expect(card('Sunrise & Sunset')).toContain('5:42 PM');
+    expect(card('Wind Status')).toContain('WSW · gusts 14');
+    expect(card('Sunrise & Sunset')).toContain('06:35');
+    expect(card('Sunrise & Sunset')).toContain('17:42');
     expect(card('Humidity')).toContain('12%Dry');
     expect(card('Visibility')).toContain('5.2kmAverage');
     expect(card('Air Quality')).toContain('105Unhealthy for some');
+    expect(card('Dew Point')).toContain('12°Comfortable');
+    expect(card('Pressure')).toContain('1,013hPaNormal');
+    expect(card('Cloud Cover')).toContain('40%Partly cloudy');
+  });
+
+  it('shows two weeks on the 14 days tab', async () => {
+    const { fixture, req, airReq, el } = await render();
+    expect(req.request.params.get('forecast_days')).toBe('14');
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.tabs__tab'))
+      .find((b) => b.textContent!.includes('14 days'))!
+      .click();
+    await fixture.whenStable();
+
+    const dayButtons = el.querySelectorAll<HTMLButtonElement>('.forecast__item--button');
+    expect(dayButtons.length).toBe(14);
+    // Weekday names repeat, so each card also carries the day of the month.
+    expect(text(dayButtons[0], '.forecast__label')).toBe('Wed 30');
+    expect(text(dayButtons[13], '.forecast__label')).toBe('Tue 13');
+
+    dayButtons[13].click();
+    await fixture.whenStable();
+    expect(text(el, '.details__title')).toBe('Tuesday, Oct 13');
+    expect(el.querySelectorAll('.details__hour').length).toBe(8);
+
+    // That day isn't on the Week tab, so its details close with it.
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.tabs__tab'))
+      .find((b) => b.textContent!.includes('Week'))!
+      .click();
+    await fixture.whenStable();
+    expect(el.querySelectorAll('.forecast__item--button').length).toBe(7);
+    expect(el.querySelector('app-day-details')).toBeNull();
+  });
+
+  it('plots wind or UV on the hourly chart instead of temperature', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.tabs__tab'))
+      .find((b) => b.textContent!.includes('Today'))!
+      .click();
+    await fixture.whenStable();
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.metrics__option'))
+      .find((b) => b.textContent!.includes('Wind'))!
+      .click();
+    await fixture.whenStable();
+
+    expect(el.querySelector('app-hourly-chart svg')?.getAttribute('aria-label')).toBe(
+      'Wind between 10 and 10 km/h, rain chance up to 20%, over the next 24 hours',
+    );
   });
 
   it('switches to an hourly forecast on the Today tab', async () => {
@@ -249,7 +308,7 @@ describe('Home', () => {
     airReq.flush(airResponse);
     await fixture.whenStable();
 
-    expect(text(el, '.rain-banner')).toContain('Rain starting in about 30 min');
+    expect(text(el, '.banner--rain')).toContain('Rain starting in about 30 min');
   });
 
   it('shows no rain banner when the next hour is dry', async () => {
@@ -258,7 +317,97 @@ describe('Home', () => {
     airReq.flush(airResponse);
     await fixture.whenStable();
 
-    expect(el.querySelector('.rain-banner')).toBeNull();
+    expect(el.querySelector('.banner--rain')).toBeNull();
+  });
+
+  it('warns about hazards in the next 24 hours', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush({
+      ...response,
+      hourly: {
+        ...response.hourly,
+        temperature_2m: hours.map(() => -2),
+        wind_gusts_10m: hours.map(() => 75),
+      },
+    });
+    airReq.flush({ current: { ...airResponse.current, us_aqi: 160 } });
+    await fixture.whenStable();
+
+    const banners = Array.from(el.querySelectorAll('.banner'), (b) =>
+      b.textContent?.replace(/\s+/g, ' ').trim(),
+    );
+    // UV 8 comes from tomorrow's midday, which is within 24 hours of 15:30.
+    expect(banners).toEqual([
+      'sunny Very high UV ahead, up to 8',
+      'air Strong wind gusts in the next 24 hours',
+      'ac_unit Frost in the next 24 hours',
+      'masks Unhealthy air right now (AQI 160)',
+    ]);
+  });
+
+  it('notifies once about new alerts while the tab is in the background', async () => {
+    const shown = vi.fn();
+    vi.stubGlobal(
+      'Notification',
+      class {
+        constructor(title: string, options: NotificationOptions) {
+          shown(title, options.tag);
+        }
+      },
+    );
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    // Notifications on, but not for UV.
+    localStorage.setItem(PREFERENCES_KEY, JSON.stringify({ notify: true, alerts: { uv: false } }));
+    const starting = {
+      ...response,
+      minutely_15: { time: quarters, precipitation: [0, 0, 0, 0.8, 1, 1, 1, 1] },
+    };
+    const { fixture, req, airReq, el } = await render();
+    req.flush(starting);
+    airReq.flush({ current: { ...airResponse.current, us_aqi: 160 } });
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    expect(el.querySelector('.banner--uv')).not.toBeNull();
+    expect(shown.mock.calls).toEqual([
+      ['Rain starting in about 30 min', 'rain'],
+      ['Unhealthy air right now (AQI 160)', 'air'],
+    ]);
+
+    // A refresh that still shows the same alerts stays quiet.
+    fixture.componentInstance['refresh']();
+    TestBed.tick();
+    httpTesting.expectOne(isForecast).flush(starting);
+    httpTesting
+      .expectOne((r) => r.url === AIR_QUALITY_URL)
+      .flush({ current: { ...airResponse.current, us_aqi: 165 } });
+    await fixture.whenStable();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    expect(shown).toHaveBeenCalledTimes(2);
+    visibility.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it('lets each kind of alert be switched off in the settings menu', async () => {
+    vi.stubGlobal('Notification', class {});
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('app-settings-menu button')!.click();
+    await fixture.whenStable();
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.settings__item'))
+      .find((item) => item.textContent!.includes('Frost'))!
+      .click();
+    await fixture.whenStable();
+
+    expect(JSON.parse(localStorage.getItem(PREFERENCES_KEY)!).alerts).toMatchObject({
+      frost: false,
+      rain: true,
+    });
+    vi.unstubAllGlobals();
   });
 
   it('animates the backdrop for the current weather', async () => {
@@ -269,6 +418,22 @@ describe('Home', () => {
 
     expect(el.querySelector('app-weather-backdrop .backdrop--rain')).not.toBeNull();
     expect(el.querySelectorAll('app-weather-backdrop .particle').length).toBeGreaterThan(0);
+    expect(el.querySelector('app-weather-backdrop .body')).toBeNull();
+  });
+
+  it('fills the sky around the dashboard with the sun, clouds and a horizon', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    const backdrop = el.querySelector('app-weather-backdrop')!;
+    expect(backdrop.getAttribute('data-phase')).toBe('day');
+    // 15:30 is past the middle of a 06:35–17:42 day, so the sun is on its way down the right.
+    expect(backdrop.querySelector('.body--sun.body--right')).not.toBeNull();
+    // 40% cloud cover.
+    expect(backdrop.querySelectorAll('.cloud').length).toBe(3);
+    expect(backdrop.querySelector('.hills')).not.toBeNull();
   });
 
   it('cycles the wind unit and refetches', async () => {
@@ -317,11 +482,85 @@ describe('Home', () => {
     el.querySelector<HTMLButtonElement>('.place__action--share')!.click();
     await fixture.whenStable();
 
-    expect(writeText).toHaveBeenCalledWith('22°C, partly cloudy in Testville');
+    expect(writeText).toHaveBeenCalledWith(
+      `22°C, partly cloudy in Testville ${document.baseURI.split('?')[0]}?lat=1&lon=2&name=Testville`,
+    );
     expect(el.querySelector('.place__action--share')?.getAttribute('aria-label')).toBe(
       'Copied to clipboard',
     );
     vi.unstubAllGlobals();
+  });
+
+  it('switches every time to the 12-hour clock from the settings menu', async () => {
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    el.querySelector<HTMLButtonElement>('app-settings-menu button')!.click();
+    await fixture.whenStable();
+    // The menu opens in an overlay on the document, outside the component.
+    Array.from(document.querySelectorAll<HTMLButtonElement>('.settings__item'))
+      .find((item) => item.textContent!.includes('12-hour'))!
+      .click();
+    await fixture.whenStable();
+
+    expect(text(el, '.current__time')).toBe('Wednesday, 3:30 PM');
+    expect(text(el, '.best-time')).toContain('5:00 PM–7:00 PM');
+    expect(text(el, '.sun')).toContain('6:35 AM');
+    expect(JSON.parse(localStorage.getItem(PREFERENCES_KEY)!).clock).toBe('12h');
+  });
+
+  it('says when the forecast on screen is out of date or offline', async () => {
+    // The fixture's forecast was measured at 15:30 UTC.
+    const now = vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 8, 30, 15, 40));
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+    const { fixture, req, airReq, el } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+    expect(el.querySelector('.current__age')).toBeNull();
+
+    now.mockReturnValue(Date.UTC(2026, 8, 30, 17, 40));
+    onLine.mockReturnValue(false);
+    document.defaultView!.dispatchEvent(new Event('offline'));
+    await fixture.whenStable();
+
+    expect(text(el, '.current__age')).toBe('history Offline · updated 2 h ago');
+    now.mockRestore();
+    onLine.mockRestore();
+  });
+
+  it('opens the place from a shared link', async () => {
+    history.replaceState(null, '', '?lat=14.676&lon=121.0437&name=Quezon+City');
+    const { fixture, req, airReq, el } = await render();
+    expect(locate).not.toHaveBeenCalled();
+    expect(req.request.params.get('latitude')).toBe('14.676');
+    expect(req.request.params.get('longitude')).toBe('121.0437');
+
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+
+    expect(text(el, '.place__name')).toBe('Quezon City');
+  });
+
+  it('keeps a searched place in the URL, but not a device location', async () => {
+    const { fixture, req, airReq } = await render();
+    req.flush(response);
+    airReq.flush(airResponse);
+    await fixture.whenStable();
+    expect(location.search).toBe('?lat=1&lon=2&name=Testville');
+
+    fixture.componentInstance['place'].set({ latitude: 14.676, longitude: 121.0437 });
+    TestBed.tick();
+    httpTesting.expectOne(isForecast).flush(response);
+    httpTesting.expectOne((r) => r.url === AIR_QUALITY_URL).flush(airResponse);
+    httpTesting.expectOne(isYesterday).flush(yesterdayResponse);
+    httpTesting.expectOne((r) => r.url === REVERSE_GEOCODE_URL).flush(geocodeResponse);
+    await fixture.whenStable();
+
+    expect(location.search).toBe('');
   });
 
   it('opens and closes the details for a day', async () => {
@@ -338,7 +577,7 @@ describe('Home', () => {
     expect(text(el, '.details__title')).toBe('Thursday, Oct 1');
     expect(el.querySelectorAll('.details__hour').length).toBe(8);
     expect(text(el, '.details__stats')).toContain('4.2 mm · 30%');
-    expect(text(el, '.details__stats')).toContain('18 km/h');
+    expect(text(el, '.details__stats')).toContain('18 km/h · gusts 35');
 
     el.querySelector<HTMLButtonElement>('.details__close')!.click();
     await fixture.whenStable();

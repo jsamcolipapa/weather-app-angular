@@ -1,5 +1,11 @@
 <main class="page" [class]="phase() ? 'page--' + phase() : ''">
-  <app-weather-backdrop [tone]="tone()" [phase]="phase()" />
+  <app-weather-backdrop
+    [tone]="tone()"
+    [phase]="phase()"
+    [progress]="sky()?.progress"
+    [cloudCover]="sky()?.cloudCover"
+    [moonCycle]="sky()?.moonCycle"
+  />
   <div class="dashboard">
     <aside class="sidebar">
       <app-place-search
@@ -17,6 +23,7 @@
         [comparison]="comparedToYesterday()"
         [wearTips]="wearTips()"
         [bestTime]="bestTime()"
+        [dataAge]="dataAge()"
         (retry)="forecast.reload()"
       />
     </aside>
@@ -40,19 +47,27 @@
           >
             Week
           </button>
+          <button
+            class="tabs__tab"
+            [class.tabs__tab--active]="view() === 'fortnight'"
+            [attr.aria-pressed]="view() === 'fortnight'"
+            (click)="view.set('fortnight')"
+          >
+            14 days
+          </button>
         </nav>
         <div class="main__actions">
           @if (notificationsSupported) {
             <button
-              class="units__unit alerts-toggle"
-              [class.units__unit--active]="notifyRain()"
+              class="units__unit"
+              [class.units__unit--active]="notify()"
               type="button"
-              [attr.aria-pressed]="notifyRain()"
-              aria-label="Notify me when rain is about to start"
-              (click)="toggleRainAlerts()"
+              [attr.aria-pressed]="notify()"
+              aria-label="Notify me about rain and severe weather"
+              (click)="toggleNotifications()"
             >
               <mat-icon aria-hidden="true">{{
-                notifyRain() ? 'notifications_active' : 'notifications'
+                notify() ? 'notifications_active' : 'notifications'
               }}</mat-icon>
             </button>
           }
@@ -74,29 +89,36 @@
               °F
             </button>
           </div>
+          <app-settings-menu [alertSettings]="notificationsSupported" />
         </div>
       </header>
 
-      @if (rainSoon(); as message) {
-        <p class="rain-banner" role="status">
-          <mat-icon class="tone-rain filled" aria-hidden="true">umbrella</mat-icon>
-          {{ message }}
-        </p>
+      @if (alerts().length) {
+        <div class="banners">
+          @for (alert of alerts(); track alert.id) {
+            <p class="banner" [class]="'banner--' + alert.id" role="status">
+              <mat-icon class="filled" [class]="'tone-' + alert.tone" aria-hidden="true">
+                {{ alert.icon }}
+              </mat-icon>
+              {{ alert.message }}
+            </p>
+          }
+        </div>
       }
 
       @if (!forecast.error()) {
         <app-forecast-strip
           [view]="view()"
           [loading]="!forecast.hasValue()"
-          [days]="week()"
+          [days]="days()"
           [hours]="hours()"
           [selectedDay]="selectedDay()"
           (daySelected)="toggleDay($event)"
         />
 
         @if (forecast.hasValue() && view() === 'today') {
-          <app-hourly-chart [points]="next24Hours()" />
-        } @else if (view() === 'week' && dayDetails(); as details) {
+          <app-hourly-chart [points]="next24Hours()" [windUnit]="windUnitLabel()" />
+        } @else if (view() !== 'today' && dayDetails(); as details) {
           <app-day-details
             [day]="details"
             [windUnit]="windUnitLabel()"

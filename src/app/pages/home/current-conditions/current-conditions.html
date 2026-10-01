@@ -18,10 +18,16 @@
     </p>
     <p class="current__time">
       {{ now.time | date: 'EEEE' }},
-      <span class="current__clock">{{ now.time | date: 'HH:mm' }}</span>
+      <span class="current__clock">{{ now.time | date: timeFormat() }}</span>
     </p>
     @if (comparison(); as comparison) {
       <p class="current__compare">{{ comparison }}</p>
+    }
+    @if (dataAge(); as age) {
+      <p class="current__age" role="status">
+        <mat-icon aria-hidden="true">history</mat-icon>
+        {{ age }}
+      </p>
     }
 
     <hr class="current__divider" />
@@ -61,7 +67,7 @@
       <p class="best-time">
         <mat-icon aria-hidden="true">directions_walk</mat-icon>
         Best time outside
-        <strong>{{ best.start | date: 'HH:mm' }}–{{ best.end | date: 'HH:mm' }}</strong>
+        <strong>{{ best.start | date: timeFormat() }}–{{ best.end | date: timeFormat() }}</strong>
       </p>
     }
 

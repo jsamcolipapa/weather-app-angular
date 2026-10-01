@@ -23,7 +23,7 @@
   <ol class="details__hours">
     @for (hour of d.hours; track hour.key) {
       <li class="details__hour">
-        <span>{{ hour.label | date: 'HH:mm' }}</span>
+        <span>{{ hour.label | date: timeFormat() }}</span>
         <mat-icon
           class="filled"
           [class]="'tone-' + hour.condition.tone"
@@ -39,11 +39,14 @@
   <dl class="details__stats">
     <div>
       <dt>Rain</dt>
-      <dd>{{ d.rainTotal | number: '1.0-1' }} mm · {{ d.rainChance ?? 0 }}%</dd>
+      <dd>{{ rainTotal() }} · {{ d.rainChance ?? 0 }}%</dd>
     </div>
     <div>
       <dt>Max wind</dt>
-      <dd>{{ d.windMax | number: '1.0-0' }} {{ windUnit() }}</dd>
+      <dd>
+        {{ d.windMax | number: '1.0-0' }} {{ windUnit() }} · gusts
+        {{ d.gustMax | number: '1.0-0' }}
+      </dd>
     </div>
     <div>
       <dt>UV max</dt>
@@ -51,7 +54,7 @@
     </div>
     <div>
       <dt>Sun</dt>
-      <dd>{{ d.sunrise | date: 'h:mm a' }} – {{ d.sunset | date: 'h:mm a' }}</dd>
+      <dd>{{ d.sunrise | date: timeFormat() }} – {{ d.sunset | date: timeFormat() }}</dd>
     </div>
   </dl>
 </section>

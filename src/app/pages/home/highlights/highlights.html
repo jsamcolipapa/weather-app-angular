@@ -51,7 +51,7 @@
             >navigation</mat-icon
           >
         </span>
-        {{ h.wind.direction }}
+        {{ h.wind.direction }} · gusts {{ h.wind.gusts | number: '1.0-0' }}
       </p>
     } @else {
       <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
@@ -70,14 +70,14 @@
         <li class="sun__row">
           <span class="sun__badge"><mat-icon aria-hidden="true">arrow_upward</mat-icon></span>
           <span>
-            <span class="sun__time">{{ h.sunrise | date: 'h:mm a' }}</span>
+            <span class="sun__time">{{ h.sunrise | date: timeFormat() }}</span>
             <span class="sun__caption">Sunrise</span>
           </span>
         </li>
         <li class="sun__row">
           <span class="sun__badge"><mat-icon aria-hidden="true">arrow_downward</mat-icon></span>
           <span>
-            <span class="sun__time">{{ h.sunset | date: 'h:mm a' }}</span>
+            <span class="sun__time">{{ h.sunset | date: timeFormat() }}</span>
             <span class="sun__caption">Sunset</span>
           </span>
         </li>
@@ -158,6 +158,58 @@
     }
   </article>
 
+  <article class="card">
+    <h3 class="card__title">Dew Point</h3>
+    @if (h) {
+      <p class="card__value">
+        {{ h.dewPoint.value | number: '1.0-0' }}<span class="card__unit card__unit--sup">°</span>
+      </p>
+      <p class="card__status">{{ h.dewPoint.label }}</p>
+    } @else {
+      <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
+      <span
+        class="skeleton skeleton--text card__status"
+        style="width: 40%"
+        aria-hidden="true"
+      ></span>
+    }
+  </article>
+
+  <article class="card">
+    <h3 class="card__title">Pressure</h3>
+    @if (h) {
+      <p class="card__value">
+        {{ h.pressure.value | number: '1.0-0' }}<span class="card__unit">hPa</span>
+      </p>
+      <p class="card__status">{{ h.pressure.label }}</p>
+    } @else {
+      <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
+      <span
+        class="skeleton skeleton--text card__status"
+        style="width: 40%"
+        aria-hidden="true"
+      ></span>
+    }
+  </article>
+
+  <article class="card card--meter">
+    <h3 class="card__title">Cloud Cover</h3>
+    @if (h) {
+      <p class="card__value">
+        {{ h.cloud.value }}<span class="card__unit card__unit--sup">%</span>
+      </p>
+      <p class="card__status">{{ h.cloud.label }}</p>
+      <span class="meter meter--cloud" [style.--level]="h.cloud.value" aria-hidden="true"></span>
+    } @else {
+      <span class="skeleton card__value-skeleton" aria-hidden="true"></span>
+      <span
+        class="skeleton skeleton--text card__status"
+        style="width: 40%"
+        aria-hidden="true"
+      ></span>
+    }
+  </article>
+
   <article class="card card--wide">
     <h3 class="card__title">Sun &amp; Moon</h3>
     @if (sky(); as sky) {
@@ -174,11 +226,11 @@
           <div>
             <span class="sky__label">Golden hour</span>
             <span class="sky__value">
-              {{ sky.goldenMorning.start | date: 'HH:mm' }}–{{
-                sky.goldenMorning.end | date: 'HH:mm'
+              {{ sky.goldenMorning.start | date: timeFormat() }}–{{
+                sky.goldenMorning.end | date: timeFormat()
               }}
-              · {{ sky.goldenEvening.start | date: 'HH:mm' }}–{{
-                sky.goldenEvening.end | date: 'HH:mm'
+              · {{ sky.goldenEvening.start | date: timeFormat() }}–{{
+                sky.goldenEvening.end | date: timeFormat()
               }}
             </span>
           </div>

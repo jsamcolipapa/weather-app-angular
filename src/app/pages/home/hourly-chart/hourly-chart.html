@@ -1,4 +1,17 @@
 @if (chart(); as c) {
+  <div class="metrics" role="group" aria-label="Chart line shows">
+    @for (m of metrics; track m.value) {
+      <button
+        class="metrics__option"
+        [class.metrics__option--active]="metric() === m.value"
+        type="button"
+        [attr.aria-pressed]="metric() === m.value"
+        (click)="metric.set(m.value)"
+      >
+        {{ m.label }}
+      </button>
+    }
+  </div>
   <svg
     class="chart"
     [attr.viewBox]="'0 0 ' + width + ' 172'"
@@ -20,14 +33,14 @@
       @if (p.labelled) {
         <circle class="chart__dot" [attr.cx]="p.x" [attr.cy]="p.y" r="3.5" />
         <text class="chart__temp" [attr.x]="p.x" [attr.y]="p.y - 10">
-          {{ p.temperature | number: '1.0-0' }}°
+          {{ p.value | number: '1.0-0' }}{{ c.suffix }}
         </text>
-        <text class="chart__time" [attr.x]="p.x" y="166">{{ p.label | date: 'HH:mm' }}</text>
+        <text class="chart__time" [attr.x]="p.x" y="166">{{ p.label | date: timeFormat() }}</text>
       }
     }
   </svg>
   <p class="legend" aria-hidden="true">
-    <span class="legend__swatch legend__swatch--temp"></span>Temperature
+    <span class="legend__swatch legend__swatch--temp"></span>{{ c.legend }}
     <span class="legend__swatch legend__swatch--rain"></span>Chance of rain
   </p>
 }

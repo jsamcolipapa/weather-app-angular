@@ -1,0 +1,63 @@
+<button class="units__unit" type="button" aria-label="Settings" [cdkMenuTriggerFor]="menu">
+  <mat-icon aria-hidden="true">tune</mat-icon>
+</button>
+
+<ng-template #menu>
+  <div class="settings" cdkMenu>
+    <div class="settings__group" cdkMenuGroup aria-labelledby="settings-clock">
+      <p id="settings-clock" class="settings__label">Clock</p>
+      @for (option of clocks; track option.value) {
+        <button
+          class="settings__item"
+          type="button"
+          cdkMenuItemRadio
+          [cdkMenuItemChecked]="prefs().clock === option.value"
+          (cdkMenuItemTriggered)="set({ clock: option.value })"
+        >
+          <mat-icon aria-hidden="true">{{
+            prefs().clock === option.value ? 'radio_button_checked' : 'radio_button_unchecked'
+          }}</mat-icon>
+          {{ option.label }}
+        </button>
+      }
+    </div>
+
+    <div class="settings__group" cdkMenuGroup aria-labelledby="settings-rain">
+      <p id="settings-rain" class="settings__label">Rain amount</p>
+      @for (option of precipUnits; track option.value) {
+        <button
+          class="settings__item"
+          type="button"
+          cdkMenuItemRadio
+          [cdkMenuItemChecked]="prefs().precipUnit === option.value"
+          (cdkMenuItemTriggered)="set({ precipUnit: option.value })"
+        >
+          <mat-icon aria-hidden="true">{{
+            prefs().precipUnit === option.value ? 'radio_button_checked' : 'radio_button_unchecked'
+          }}</mat-icon>
+          {{ option.label }}
+        </button>
+      }
+    </div>
+
+    @if (alertSettings()) {
+      <div class="settings__group" cdkMenuGroup aria-labelledby="settings-alerts">
+        <p id="settings-alerts" class="settings__label">Notify me about</p>
+        @for (alert of alerts; track alert.id) {
+          <button
+            class="settings__item"
+            type="button"
+            cdkMenuItemCheckbox
+            [cdkMenuItemChecked]="prefs().alerts[alert.id]"
+            (cdkMenuItemTriggered)="toggleAlert(alert.id)"
+          >
+            <mat-icon aria-hidden="true">{{
+              prefs().alerts[alert.id] ? 'check_box' : 'check_box_outline_blank'
+            }}</mat-icon>
+            {{ alert.label }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+</ng-template>

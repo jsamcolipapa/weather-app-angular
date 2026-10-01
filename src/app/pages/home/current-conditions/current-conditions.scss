@@ -97,6 +97,21 @@ ul {
   color: var(--mat-sys-on-surface-variant);
 }
 
+.current__age {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+
+  mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+}
+
 .current__clock {
   color: var(--mat-sys-on-surface-variant);
   font-weight: 400;

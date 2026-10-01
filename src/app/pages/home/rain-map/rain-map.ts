@@ -16,6 +16,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import type { CircleMarker, Map as LeafletMap, TileLayer } from 'leaflet';
 import { Place, RainViewerMaps } from '../../../models/weather.models';
+import { PreferencesService } from '../../../services/preferences.service';
 import { MAP_TILE_URL, RAINVIEWER_URL } from '../../../services/weather.service';
 
 const ZOOM = 7;
@@ -38,6 +39,7 @@ const FRAME_MS = 600;
 export class RainMap {
   readonly place = input.required<Place>();
 
+  protected readonly timeFormat = inject(PreferencesService).timeFormat;
   private readonly container = viewChild.required<ElementRef<HTMLElement>>('map');
   private readonly maps = httpResource<RainViewerMaps>(() => RAINVIEWER_URL);
 

@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { PreferencesService } from '../../../services/preferences.service';
 import { DayDetails, DayDetailsData } from './day-details';
 
 const condition = { label: 'Rain', icon: 'rainy', tone: 'rain' as const };
@@ -10,6 +11,7 @@ const day: DayDetailsData = {
   rainChance: 80,
   rainTotal: 12.34,
   windMax: 24.6,
+  gustMax: 41.2,
   uvMax: 2,
   sunrise: new Date(2026, 9, 1, 6, 35),
   sunset: new Date(2026, 9, 1, 17, 42),
@@ -37,9 +39,21 @@ describe('DayDetails', () => {
     expect(el.querySelector('.details__title')?.textContent).toBe('Thursday, Oct 1');
     expect(el.querySelectorAll('.details__hour').length).toBe(3);
     expect(stats).toContain('12.3 mm · 80%');
-    expect(stats).toContain('25 mph');
+    expect(stats).toContain('25 mph · gusts 41');
     expect(stats).toContain('2 · Low');
+    expect(stats).toContain('06:35 – 17:42');
+  });
+
+  it('follows the clock and rain unit settings', async () => {
+    localStorage.clear();
+    TestBed.inject(PreferencesService).update({ clock: '12h', precipUnit: 'inch' });
+    const { el } = await render();
+    const stats = el.querySelector('.details__stats')?.textContent?.replace(/\s+/g, ' ');
+
+    expect(stats).toContain('0.49 in · 80%');
     expect(stats).toContain('6:35 AM – 5:42 PM');
+    expect(el.querySelector('.details__hour')?.textContent).toContain('12:00 AM');
+    localStorage.clear();
   });
 
   it('closes on the close button and on Escape', async () => {
